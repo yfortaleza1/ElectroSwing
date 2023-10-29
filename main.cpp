@@ -5,6 +5,6 @@
 */
 #include <Stepper.h>
 
-int main(){
-    return 0;
+void loop(){
+    
 }
