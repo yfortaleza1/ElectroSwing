@@ -5,6 +5,10 @@
 */
 #include <Stepper.h>
 
-void loop(){
+void setup(){
     
+}
+
+void loop(){
+
 }
