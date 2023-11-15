@@ -1,25 +1,28 @@
-// 7 segment timer
+/*
+* Project: Ava's Motorized Swing
+* File:    segment_timer.ino
+* Authors: Jess Turner (found code on projecthub.arduino.cc),
+           Marc Conn (circuit / debugging)
+* Date:    Tues. 11/14/2023
+*/
 // source: https://projecthub.arduino.cc/dmytrosavchuk/adjustable-countdown-timer-382ea8
 /* 
 Notes:
-button1 (Pin 13): This button is used for resetting the countdown timer. 
+button_reset (Pin 13): This button is used for resetting the countdown timer. 
 When the button is pressed, the reset() function is called, allowing the user to adjust the countdown time.
 
-button2 (Pin 12): This button is used to start the countdown. 
+button_start (Pin 12): This button is used to start the countdown. 
 The Countdown function is called when this button is pressed. 
 During the countdown, the user can't make adjustments.
 
-button3 (Pin 16): This button is used for **decrementing** the countdown time during the adjustment phase. 
+button_decrement (Pin 16): This button is used for **decrementing** the countdown time during the adjustment phase. 
 Holding down this button will decrement the countdown time faster, as seen in the reset() function.
 
-button4 (Pin 17): This button is used for **incrementing** the countdown time during the adjustment phase. 
+button_increment (Pin 17): This button is used for **incrementing** the countdown time during the adjustment phase. 
 Holding down this button will increment the countdown time faster, as seen in the reset() function.
 
 todo: 
 - [ ] 
-(resolved)
-- (Wednesday 11/15 by 11:30)
-- [X] figure out what each button does.
 */
 #include <math.h>
 
@@ -39,10 +42,10 @@ int segF = 7;
 int segG = 8;
 // int segPD = ;
 
-int button1 = 13;
-int button2 = 12;
-int button3 = 16;
-int button4 = 17;
+int button_reset = 13;
+int button_start = 12;
+int button_decrement = 16;
+int button_increment = 17;
 
 int countdown_time = 60;
 
@@ -68,10 +71,10 @@ void setup()
 
     pinMode(speakerPin, OUTPUT);
 
-    pinMode(button1, INPUT_PULLUP);
-    pinMode(button2, INPUT_PULLUP);
-    pinMode(button3, INPUT_PULLUP);
-    pinMode(button4, INPUT_PULLUP);
+    pinMode(button_reset, INPUT_PULLUP);
+    pinMode(button_start, INPUT_PULLUP);
+    pinMode(button_decrement, INPUT_PULLUP);
+    pinMode(button_increment, INPUT_PULLUP);
 }
 
 void playTone(int tone, int duration)
@@ -251,7 +254,7 @@ void PrintNumber(int n, int time)
 
     for (int i = 0; i <= time / 20; i++)
     {
-        if (digitalRead(button2) == LOW)
+        if (digitalRead(button_start) == LOW)
         {
             return;
         }
@@ -269,7 +272,7 @@ bool Countdown(int n, int del)
     for (int q = n; q > 0; q--)
     {
         PrintNumber(q, del);
-        if (digitalRead(button2) == LOW)
+        if (digitalRead(button_start) == LOW)
         {
             return false;
         }
@@ -287,7 +290,7 @@ void reset()
 
     dig = IntToDigits(countdown_time);
 
-    while (digitalRead(button1) == HIGH)
+    while (digitalRead(button_reset) == HIGH)
     {
         for (int j = 0; j < 4; j++)
         {
@@ -295,7 +298,7 @@ void reset()
             lightNumber(dig.digit[j]);
             delay(5);
         }
-        if (digitalRead(button3) == LOW)
+        if (digitalRead(button_decrement) == LOW)
         {
             if (pressed3 == 0 || pressed3 > 30)
             {
@@ -307,7 +310,7 @@ void reset()
             }
             pressed3 += 1;
         }
-        else if (digitalRead(button4) == LOW)
+        else if (digitalRead(button_increment) == LOW)
         {
             if (pressed4 == 0 || pressed4 > 30)
             {
@@ -319,11 +322,11 @@ void reset()
             }
             pressed4 += 1;
         }
-        if (digitalRead(button3) == HIGH)
+        if (digitalRead(button_decrement) == HIGH)
         {
             pressed3 = 0;
         }
-        if (digitalRead(button4) == HIGH)
+        if (digitalRead(button_increment) == HIGH)
         {
             pressed4 = 0;
         }
@@ -337,7 +340,7 @@ void loop()
     {
         reset();
     }
-    while (digitalRead(button2) == 1)
+    while (digitalRead(button_start) == 1)
     {
     };
 }
