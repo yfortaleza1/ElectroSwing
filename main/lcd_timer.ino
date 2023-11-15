@@ -1,5 +1,12 @@
-// Date: Tues Nov. 14
-// source: https://www.shecodes.io/athena/38307-how-to-create-a-timer-with-lcd-display-using-arduino
+/*
+* Project: Ava's Motorized Swing
+* Author: Jess Turner (didn't write, source: `SheCodes` bot)
+* Date:   Tues Nov. 14, 2023
+* Notes: 
+Unchanged from original code via the source as of today.
+Source 
+https://www.shecodes.io/athena/38307-how-to-create-a-timer-with-lcd-display-using-arduino
+*/
 
 // include the library code:
 #include <LiquidCrystal.h>

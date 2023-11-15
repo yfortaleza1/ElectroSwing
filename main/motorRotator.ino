@@ -1,4 +1,9 @@
-
+/*
+* Project: Ava's Motorized Swing
+* File:    motorRotator.ino
+* Authors: Marc Conn, Alec Kalish
+* Date:    Tues. 11/14/2023
+*/
 // put your setup code here, to run once:
 // defines pins numbers
 const int stepPin = 5;
