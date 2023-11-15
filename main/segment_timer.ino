@@ -1,5 +1,26 @@
 // 7 segment timer
 // source: https://projecthub.arduino.cc/dmytrosavchuk/adjustable-countdown-timer-382ea8
+/* 
+Notes:
+button1 (Pin 13): This button is used for resetting the countdown timer. 
+When the button is pressed, the reset() function is called, allowing the user to adjust the countdown time.
+
+button2 (Pin 12): This button is used to start the countdown. 
+The Countdown function is called when this button is pressed. 
+During the countdown, the user can't make adjustments.
+
+button3 (Pin 16): This button is used for **decrementing** the countdown time during the adjustment phase. 
+Holding down this button will decrement the countdown time faster, as seen in the reset() function.
+
+button4 (Pin 17): This button is used for **incrementing** the countdown time during the adjustment phase. 
+Holding down this button will increment the countdown time faster, as seen in the reset() function.
+
+todo: 
+- [ ] 
+(resolved)
+- (Wednesday 11/15 by 11:30)
+- [X] figure out what each button does.
+*/
 #include <math.h>
 
 int digit_pin[] = {6, 9, 10, 11}; // PWM Display  digit pins from left to right
