@@ -1,9 +1,11 @@
 # ElectroSwing
 Codebase for Ava's Motorized Swing
 
-Sources:
-- basic timer terminal output: 
-https://www.scaler.com/topics/cpp-timer/
+## Timer
+### LCD
+Source: https://www.shecodes.io/athena/38307-how-to-create-a-timer-with-lcd-display-using-arduino
+### 7 Segment
+Source: 
 
 ## Directories
 ### ./main
