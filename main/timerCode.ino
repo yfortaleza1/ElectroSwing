@@ -26,39 +26,60 @@ short int minOnes = 0;//ones place for minutes
 short int secTens = 0;//tens place for seconds
 short int secOnes = 0;//ones place for seconds
 
+//BUTTON PINs
+const short int incrementPin = 22;//used for incrementing time
+const short int decrementPin = 23;//used for decremnting time
+const short int startPin = 24;//used for starting swing time
+const short int stopPin = 25;//used for clearing and stoping swing time
+
+
+
 
 //pins for decimal point and each segment
 //dp, G, F, E, D, C, B, A
-const short int segmentPins[]= { 1, 2, 3, 4, 5, 7, 10, 11};
+const short int segmentPins[]= { 1, 2, 3, 4, 5, 7, 10, 11};///used for 7 segment
+const short int buttonPins[] = {incrementPin,decrementPin,startPin,stopPin};;//used for buttons
 
 const short int numberofDigits=4;
 
 const short int digitPins[numberofDigits] = { 6,8,9, 12}; //digits 1, 2, 3, 4
 
+
+//setup button pins
+void buttonSetup(){
+  for (int i=0; i < 4; i++){
+    pinMode(buttonPins[i], INPUT); //set segment and DP pins to output
+  }
+
+}
+
+
+
 //FUCTION SETUPS CLOCK INTERRUPTS
 void clockInterruptSetup(){
 
-  cli();                      //stop interrupts for till we make the settings
-  /*1. First we reset the control register to amke sure we start with everything disabled.*/
-  TCCR1A = 0;                 // Reset entire TCCR1A to 0 
-  TCCR1B = 0;                 // Reset entire TCCR1B to 0
- 
-  /*2. We set the prescalar to the desired value by changing the CS10 CS12 and CS12 bits. */  
-  TCCR1B |= B00000100;        //Set CS12 to 1 so we get prescalar 256  
-  
-  /*3. We enable compare match mode on register A*/
-  TIMSK1 |= B00000010;        //Set OCIE1A to 1 so we enable compare match A 
-  
-  /*4. Set the value of register A to 31250*/
-  //DECREASE OCR1A FROM 31250 TO MAKE A SECOND OCCUR FASTER
-  OCR1A = 31250/4;             //Finally we set compare register A to this value  
-  sei(); //turn all interrupts back on
+  cli();
+  // Clear registers
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1 = 0;
 
+  // 1 Hz (16000000/((15624+1)*1024))
+  //HAVING OCR1A EQUAL 15624 MAKES THE INTERRUPT TRIGGER ONCE EVERY SECOND
+  //IF YOU WANT TO SPEED DECREMENTING MAKE OCR1A SMALLER THAN 15624
+  OCR1A = 15624/10;
+  // CTC
+  TCCR1B |= (1 << WGM12);
+  // Prescaler 1024
+  TCCR1B |= (1 << CS12) | (1 << CS10);
+  // Output Compare Match A Interrupt Enable
+  TIMSK1 |= (1 << OCIE1A);
+  sei();
 
 }
 
 //FUNCTION STEPS UP I/O PINS
-void pinSetup(){
+void segmentPinSetup(){
   for (int i=0; i < 8; i++){
     pinMode(segmentPins[i], OUTPUT); //set segment and DP pins to output
   }
@@ -71,8 +92,93 @@ void pinSetup(){
 }
 
 
+//This function is used to make sure that a pin isn't read multiple times
+//After a pin is read that the opereator presses
+//call this function
+//it'll basically until the operator lets go off said button
+void debounceButton(short int pinNumber){
 
-void timing(){
+  while(digitalRead(pinNumber) == LOW){
+    //DO NOTHING BUT DISPLAY TIME
+    displayTime();//display current selected time
+    //stay in this while loop until the pin in question goes high again
+  }
+
+}
+
+
+void getSwingTime(){
+
+  while(digitalRead(startPin) == HIGH){//be in this "SET TIME" MODE while start pin is low
+
+
+    //IF THE THE STOP BUTTON IS PRESSED
+    /*if(digitalRead(stopPin) != HIGH){//clear time
+      //debounceButton(stopPin);//wait until stopPin is let go
+      clearTime();//clear time
+      return;
+    }*/
+
+    //IF THE INCREMENT BUTTON IS PRESSED
+    if(digitalRead(incrementPin) != HIGH){
+
+      debounceButton(incrementPin);//wait until incrementPin is let go
+
+      if(minOnes < 9 && minOnes >= 0){
+        minOnes +=1;//increment minsOnes place
+      }
+
+      else if(minOnes == 9 && minTens != 5){//ONES PLACE OVERFLOW CONDITION
+        minOnes = 0;//set ones place of mines to 0
+        minTens += 1;//incrmeent tens place of minutes
+      }
+
+    }
+
+
+    //IF THE DECREMENT BUTTON IS PRESSED
+    if(digitalRead(decrementPin) != HIGH){
+
+      debounceButton(decrementPin);//wait until incrementPin is let go
+
+      if(minOnes > 0 && minOnes <= 9){
+        minOnes -=1;//decrement minsOnes place
+      }
+
+      else if(minOnes == 0 && minTens != 0){//DECREMENTING TENS PLACE BY 1
+        minOnes = 9;//set ones place of mines to 0
+        minTens -= 1;//incrmeent tens place of minutes
+      }
+
+    }
+
+        displayTime();//display current selected time
+  }
+
+  debounceButton(startPin);//wait until start pin is let go
+
+}
+
+//USED FOR CLEARING SWING TIME
+void clearTime(){
+  secOnes = 0;
+  secTens = 0;
+  minOnes = 0;
+  minTens = 0;
+}
+
+void displayTime(){
+
+  showDigit (minTens, 4);//show 4th digit
+  showDigit (minOnes, 3);//show 3rd digit
+  showDigit (secTens, 2);//show 2nd digit
+  showDigit (secOnes, 1);//show 1st digit
+}
+
+//this function is responsible for time decrementing logic
+//Function decrements timer by 1 SECOND
+//THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
+void decrementTimer(){
 
 
       if(secOnes != 0){
@@ -154,9 +260,10 @@ void showDigit (int number, int digit){
 
   digitalWrite(digitPins[digit], LOW);
 
+  /*//THIS CODE WILL MAKE 7SEG FLICKER WHEN TIMER RUNS OUT
   if(secOnes == 0 && secTens == 0 && minOnes == 0 && minTens == 0){
     delay(10);//THIS WILL CAUSE LEDS TO VISIBLY FLICKER, MAY BE ANNOYING :(
-  }
+  }*/
   
 }
 
@@ -166,38 +273,27 @@ void setup()
 {
 
  
+  //USED FOR TESTING
+  /*
   minTens = 1;//tens place for minutes
   minOnes = 3;//ones place for minutes
   secTens = 1;//tens place for seconds
   secOnes = 2;//ones place for seconds
+  */
 
   
 
-  
-  pinSetup();//setup pins
+  buttonSetup();//.setup button pins
+  segmentPinSetup();//setup 7 segment pins
+  getSwingTime();//get swing time from opereator via physical timer interface
   clockInterruptSetup();//setup clock interrupts
 }
 
 void loop(){
-  //timing();
-  showDigit (minTens, 4);
-  showDigit (minOnes, 3);
-  showDigit (secTens, 2);
-  showDigit (secOnes, 1);
-  //showDigit(9,4);
-  //digitalWrite(5, HIGH);//selects digit to have number displayed on
-  //digitalWrite(11, HIGH);
-  //delay(1000);
+  displayTime();
 }
 
 //With the settings above, this IRS will trigger each 500ms.
 ISR(TIMER1_COMPA_vect){
-  TCNT1  = 0;                  //First, set the timer back to 0 so it resets for next interrupt
-  secTicks +=1;
-
-  if(secTicks != 0 && secTicks % 2 == 0){
-    timing();
-    secTicks = 0;
-  }
-  
+    decrementTimer();//DECREMENT TIMER BY A SECOND
 }
