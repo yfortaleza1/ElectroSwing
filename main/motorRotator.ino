@@ -4,33 +4,31 @@
 * Authors: Marc Conn, Alec Kalish
 * Date:    Tues. 11/14/2023
 */
-// put your setup code here, to run once:
-// defines pins numbers
-const int stepPin = 5;
-const int dirPin = 2;
-const int enPin = 8;
+#include "motorRotator.h"
 
-// INCREASE VALUE BY 50 TO GET A QUATER CIRCLE OF MOTION AT MOTOR STRENGTH 965
-const int SPIN_TIME = 50; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
-
-// FOR MOTOR STRENGTH 350 MINIMUM
-// 940 IS CONSISTENT WITH STARTING AND STOPPING IN THE SAME PLACE, WHEN ROTATING LEFT AND BACK TO RIGHT
-// DONT GO ABOVE 965 FOR MOTOR STRENGTH
-const int MOTOR_STRENGTH = 800; // THIS IN A DELAY VALUE IN MICROSECONDS, LONGER THE DEPLAY SLOWER THE MOTOR WILL BE
-
+// code within these functions are still the same, 
+// now we should be able to call the setup within main.ino, 
+// where we will also tie in the timer setup and loop. 
 void setup()
 {
+    motorRotatorSetup();
+}
+void loop()
+{
+    motorRotatorLoop();
+}
 
+void motorRotatorSetup() {
     // Sets the two pins as Outputs
     pinMode(stepPin, OUTPUT);
     pinMode(dirPin, OUTPUT);
 
     pinMode(enPin, OUTPUT);
     digitalWrite(enPin, LOW);
-}
-void loop()
-{
 
+}
+
+void motorRotatorLoop() {
     digitalWrite(dirPin, HIGH); // Enables the motor to move in a particular direction
     for (int x = 0; x < SPIN_TIME; x++)
     { // SPIN_TIME VALUE DICTATES HOW LONG MOTOR WILL SPIN
