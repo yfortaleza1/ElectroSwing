@@ -113,14 +113,13 @@ void getSwingTime(){
 
 
     //IF THE THE STOP BUTTON IS PRESSED
-    /*if(digitalRead(stopPin) != HIGH){//clear time
+    if(digitalRead(stopPin) != HIGH){//clear time
       //debounceButton(stopPin);//wait until stopPin is let go
-      clearTime();//clear time
-      return;
-    }*/
+      clearTimer();//clear time
+    }
 
     //IF THE INCREMENT BUTTON IS PRESSED
-    if(digitalRead(incrementPin) != HIGH){
+    else if(digitalRead(incrementPin) != HIGH){
 
       debounceButton(incrementPin);//wait until incrementPin is let go
 
@@ -137,7 +136,7 @@ void getSwingTime(){
 
 
     //IF THE DECREMENT BUTTON IS PRESSED
-    if(digitalRead(decrementPin) != HIGH){
+    else if(digitalRead(decrementPin) != HIGH){
 
       debounceButton(decrementPin);//wait until incrementPin is let go
 
@@ -160,7 +159,7 @@ void getSwingTime(){
 }
 
 //USED FOR CLEARING SWING TIME
-void clearTime(){
+void clearTimer(){
   secOnes = 0;
   secTens = 0;
   minOnes = 0;
@@ -180,32 +179,38 @@ void displayTime(){
 //THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
 void decrementTimer(){
 
-
-      if(secOnes != 0){
-        secOnes = secOnes - 1;//decrement secOnes, a second should have passed
+      if(digitalRead(stopPin) == LOW){//IF STOP BUTTON PRESSED, CLEAR TIMER AND END SWING
+        //debounceButton(stopPin);
+        clearTimer();//clear timer
       }
 
-      else if(secOnes == 0 && secTens != 0){
+      else{//IF STOP BUTTON NOT PRESSED, DECREMENT NORMALLY
 
-        secOnes = 9;
-        secTens -=1;//decrement sec tens
+        if(secOnes != 0){
+          secOnes = secOnes - 1;//decrement secOnes, a second should have passed
+        }
+
+        else if(secOnes == 0 && secTens != 0){
+
+          secOnes = 9;
+          secTens -=1;//decrement sec tens
+        }
+
+        else if(secOnes == 0 && secTens == 0 && minOnes != 0){
+
+          minOnes -=1;
+          secTens = 5;
+          secOnes = 9;
+        }
+
+        else if(secOnes == 0 && secTens == 0 && minOnes == 0 && minTens != 0){
+
+          minTens -=1;
+          minOnes = 9;
+          secTens = 5;
+          secOnes = 9;
+        }
       }
-
-      else if(secOnes == 0 && secTens == 0 && minOnes != 0){
-
-        minOnes -=1;
-        secTens = 5;
-        secOnes = 9;
-      }
-
-      else if(secOnes == 0 && secTens == 0 && minOnes == 0 && minTens != 0){
-
-        minTens -=1;
-        minOnes = 9;
-        secTens = 5;
-        secOnes = 9;
-      }
-    
 }
 
 
