@@ -9,7 +9,6 @@
 -> [ ] timer
 -> etc.
 */
-#include <Stepper.h>
 #include "motorRotator.h"
 // todo @LT69018 incorporate timer code into a .ino and use LCD display
 
