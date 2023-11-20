@@ -1,4 +1,6 @@
-
+//THIS IS USING ATMEGA2560 
+//ONLY WORKS FOR THE MEGA REV3, THE ONE WE ARE PLANNING ON USING FOR THE FINAL PRODUCT
+//THIS CODE WON'T WORK ON THE UNO BECCAUSE OF DIFFERENT REGISTERS AND CLOCK SPEED (NEED TO CONFIRM)
 
 #include<time.h>
 
@@ -33,6 +35,8 @@ const short int startPin = 24;//used for starting swing time
 const short int stopPin = 25;//used for clearing and stoping swing time
 
 
+bool motorIdle = false;
+
 
 
 //pins for decimal point and each segment
@@ -56,6 +60,8 @@ void buttonSetup(){
 
 
 //FUCTION SETUPS CLOCK INTERRUPTS
+//16 BIT TIMER
+//USES TIMER1
 void clockInterruptSetup(){
 
   cli();
@@ -77,6 +83,62 @@ void clockInterruptSetup(){
   sei();
 
 }
+
+
+volatile int divider=0;
+volatile int dividerMotor=0;
+
+
+//USED THIS FOR TRIGGERING SEGMENT DISPLAY
+//THIS IS USING TIMER0
+//8 bit timer
+void SevenSegTimerSetup() {
+  cli();
+  // Clear registers
+  TCCR0A = 0;
+  TCCR0B = 0;
+  TCNT0 = 0;
+
+  // 100.16025641025641 Hz (16000000/((155+1)*1024))
+  //period is 0.01 seconds
+  //OCR0A = 155;
+
+  // 744.047 Hz (16000000/((20+1)*1024))
+  //Period is 0.001344 seconds
+  OCR0A = 20;
+  // CTC
+  TCCR0A |= (1 << WGM01);
+  // Prescaler 1024
+  TCCR0B |= (1 << CS02) | (1 << CS00);
+  // Output Compare Match A Interrupt Enable
+  TIMSK0 |= (1 << OCIE0A);
+  sei();
+}
+
+
+//USED THIS FOR TRIGGERING SEGMENT DISPLAY
+//THIS IS USING TIMER2
+//8 bit timer
+void MotorClockSetup() {
+  cli();
+  // Clear registers
+  TCCR2A = 0;
+  TCCR2B = 0;
+  TCNT2 = 0;
+
+  // 100.16025641025641 Hz (16000000/((155+1)*1024))
+  //period is 0.0092 seconds
+  //HAVE A COUNTER THAT IS TRIGGERED BY THIS INTERRUPT
+  OCR2A = 154;
+  // CTC
+  TCCR2A |= (1 << WGM01);
+  // Prescaler 1024
+  TCCR2B |= (1 << CS02) | (1 << CS00);
+  // Output Compare Match A Interrupt Enable
+  TIMSK2 |= (1 << OCIE0A);
+  sei();
+}
+
 
 //FUNCTION STEPS UP I/O PINS
 void segmentPinSetup(){
@@ -293,6 +355,9 @@ void motorRotatorSetup() {
     pinMode(enPin, OUTPUT);
     digitalWrite(enPin, LOW);
 
+    pinMode(stepPin, OUTPUT);
+
+
 }
 
 
@@ -360,13 +425,20 @@ void setup()
   */
 
   
-
+  motorIdle = true;
   buttonSetup();//.setup button pins
   segmentPinSetup();//setup 7 segment pins
   getSwingTime();//get swing time from opereator via physical timer interface
   clockInterruptSetup();//setup clock interrupts
+  SevenSegTimerSetup();
   motorRotatorSetup();//setup motors
+  //motorIdle = false;
+
 }
+
+
+
+
 
 //MOTOR WILL KEEP OSCILLATING SO LONG AS THERE'S TIME REMAINING
 //ONCE TIME RUNS OUT THE SEVEN SEG SHOULD DISPLAY 00:00 FOREVER
@@ -375,13 +447,57 @@ void loop(){
   //motorRotatorLoop();//move motors
 
   if(secOnes != 0 || secTens != 0 && minOnes != 0 || minTens != 0){
-      motorRotatorLoop();//move motors
+      motorIdle = false;      
+  }
+
+  else{
+    motorIdle == true;
   }
 }
 
-//With the settings above, this IRS will trigger each 500ms.
+
+
+
+
+//With the settings above, this IRS will trigger each second.
+//USED FOR DECREMENTING THE TIMER EVERY SECOND
 ISR(TIMER1_COMPA_vect){
+    cli();
     decrementTimer();//DECREMENT TIMER BY A SECOND
+    sei();
     //displayTime();
 
+}
+
+
+//tTHIS HANDLES THE TRIGGERING THE SEVEN SEGMENT DISPLAY
+//USED TIMER 0
+ISR(TIMER0_COMPA_vect) {
+  cli();//disable interrupts
+  if(divider==0){
+    displayTime();
+  }
+  divider++;
+  divider%=100;
+  sei();//reenable all interrupts
+}
+
+
+
+//tTHIS HANDLES THE MOTOR being rotating
+//USED TIMER 2
+ISR(TIMER2_COMPA_vect) {
+
+  
+  cli();//disable interrupts
+  if(motorIdle == false){//MOVE MOTOR
+    motorRotatorLoop();
+  }
+
+  else{
+    digitalWrite(stepPin, HIGH);
+  }
+  dividerMotor++;
+  dividerMotor%=80;//
+  sei();//reenable all interrupts
 }
