@@ -11,16 +11,18 @@ void getAccel(int time){
   // put your main code here, to run repeatedly:
 
   //print the sensor values:
-  Serial.print(analogRead(xPin));
-  Serial.print("\r");
-  Serial.print("\n");
-  
-
-  Serial.print(analogRead(yPin));
+  Serial.print("x-axis: ");
+  Serial.println(analogRead(xPin));
   Serial.print("\r");
   Serial.print("\n");
 
-  Serial.print(analogRead(zPin));
+  Serial.print("y-axis: ");
+  Serial.println(analogRead(yPin));
+  Serial.print("\r");
+  Serial.print("\n");
+
+  Serial.print("z-axis: ");
+  Serial.println(analogRead(zPin));
   Serial.print("\r");
   Serial.print("\n");
 
