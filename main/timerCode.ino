@@ -1,6 +1,6 @@
 
 
-#include<time.h>
+#include <time.h>
 
 const int sensorPin= 0;//The analog sensor is connected to analog pin 0 of the arduino
 
