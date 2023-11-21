@@ -1,3 +1,9 @@
+/*
+* Project: Ava's Motorized Swing
+* File:    accelRead.ino
+* Authors: Yoel Fortaleza
+* Date:    Mon. 11/20/2023
+*/
 const int sdaPin = A4; //analog input 4 -- ground
 const int sdlPin = A5; //analog input 5 -- voltage
 const int xPin = A3; //x-axis
