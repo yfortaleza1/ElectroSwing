@@ -2,7 +2,8 @@
 //ONLY WORKS FOR THE MEGA REV3, THE ONE WE ARE PLANNING ON USING FOR THE FINAL PRODUCT
 //THIS CODE WON'T WORK ON THE UNO BECCAUSE OF DIFFERENT REGISTERS AND CLOCK SPEED (NEED TO CONFIRM)
 
-#include<time.h>
+#include <time.h>
+#include <Stepper.h>
 
 const int sensorPin= 0;//The analog sensor is connected to analog pin 0 of the arduino
 
