@@ -80,6 +80,8 @@ void clockInterruptSetup(){
   // Prescaler 1024
   TCCR1B |= (1 << CS12) | (1 << CS10);
   // Output Compare Match A Interrupt Enable
+  // Marc - This Mask is used to enable the interrupts for a specific thing. To disable it, just change the 1 in the below
+  // equation to a 0. That way you can turn off specific interrupts instead of just disabling everything.
   TIMSK1 |= (1 << OCIE1A);
   sei();
 
