@@ -172,19 +172,17 @@ void debounceButton(short int pinNumber){
 }
 
 
-void getSwingTime(){
-
-  while(digitalRead(startPin) == HIGH){//be in this "SET TIME" MODE while start pin is low
+  while(digitalRead(startPin) != HIGH){//be in this "SET TIME" MODE while start pin is low
 
 
     //IF THE THE STOP BUTTON IS PRESSED
-    if(digitalRead(stopPin) != HIGH){//clear time
+    if(digitalRead(stopPin) != LOW){//clear time
       //debounceButton(stopPin);//wait until stopPin is let go
       clearTimer();//clear time
     }
 
     //IF THE INCREMENT BUTTON IS PRESSED
-    else if(digitalRead(incrementPin) != HIGH){
+    else if(digitalRead(incrementPin) != LOW){
 
       debounceButton(incrementPin);//wait until incrementPin is let go
 
@@ -201,7 +199,7 @@ void getSwingTime(){
 
 
     //IF THE DECREMENT BUTTON IS PRESSED
-    else if(digitalRead(decrementPin) != HIGH){
+    else if(digitalRead(decrementPin) != LOW){
 
       debounceButton(decrementPin);//wait until incrementPin is let go
 
@@ -220,8 +218,6 @@ void getSwingTime(){
   }
 
   debounceButton(startPin);//wait until start pin is let go
-
-}
 
 //USED FOR CLEARING SWING TIME
 void clearTimer(){
