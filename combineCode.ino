@@ -61,7 +61,7 @@ void buttonSetup(){
 
 
 //FUCTION SETUPS CLOCK INTERRUPTS
-//16 BIT TIMER
+//8 BIT TIMER
 //USES TIMER1
 void clockInterruptSetup(){
 
@@ -92,7 +92,7 @@ volatile int dividerMotor=0;
 
 //USED THIS FOR TRIGGERING SEGMENT DISPLAY
 //THIS IS USING TIMER0
-//8 bit timer
+//16 bit timer
 void SevenSegTimerSetup() {
   cli();
   // Clear registers
