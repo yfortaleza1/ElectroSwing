@@ -449,8 +449,10 @@ void loop(){
   displayTime();
   //motorRotatorLoop();//move motors
 
-  if(secOnes != 0 || secTens != 0 && minOnes != 0 || minTens != 0){
-      motorIdle = false;      
+  // if(secOnes != 0 || secTens != 0 && minOnes != 0 || minTens != 0){
+  // correction 12/1, should be all ORs so that anything being nonzero means time left.
+  if(secOnes != 0 || secTens != 0 || minOnes != 0 || minTens != 0){
+      motorIdle = false; // keep moving     
   }
 
   else{
