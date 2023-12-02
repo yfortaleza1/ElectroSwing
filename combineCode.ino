@@ -162,8 +162,9 @@ void segmentPinSetup(){
 //call this function
 //it'll basically until the operator lets go off said button
 void debounceButton(short int pinNumber){
-
-  while(digitalRead(pinNumber) == LOW){
+    // jess proposed correction 12/1: don't we have HIGH as pressed down, 
+    // so to check its still pressed, should compare to HIGH
+  while(digitalRead(pinNumber) == HIGH){
     //DO NOTHING BUT DISPLAY TIME
     displayTime();//display current selected time
     //stay in this while loop until the pin in question goes high again
@@ -239,9 +240,12 @@ void displayTime(){
 //Function decrements timer by 1 SECOND
 //THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
 void decrementTimer(){
-
-      if(digitalRead(stopPin) == LOW){//IF STOP BUTTON PRESSED, CLEAR TIMER AND END SWING
-        //debounceButton(stopPin);
+      // Proposed change 12/2 - Jess
+      // Button pressed down is HIGH, so that is what we should detect, right?
+      if(digitalRead(stopPin) == HIGH){//IF STOP BUTTON PRESSED, CLEAR TIMER AND END SWING
+        debounceButton(stopPin);
+        // tell the motor to stop!
+        motorIdle = true; // should trigger motor ISR, right?
         clearTimer();//clear timer
       }
 
