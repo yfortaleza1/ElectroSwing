@@ -249,9 +249,7 @@ void decrementTimer(){
         clearTimer();//clear timer
       }
 
-      // use our motor tracking variable to see if the timer still needs to be counting down
-      // rather than plain else since 
-      else if (motorIdle == false) {//IF STOP BUTTON NOT PRESSED, DECREMENT NORMALLY
+      else{//IF STOP BUTTON NOT PRESSED, DECREMENT NORMALLY
 
         if(secOnes != 0){
           secOnes = secOnes - 1;//decrement secOnes, a second should have passed
@@ -458,7 +456,7 @@ void loop(){
   }
 
   else{
-    motorIdle = true; // stop moving
+    motorIdle == true;
   }
 }
 
