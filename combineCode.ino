@@ -502,8 +502,7 @@ ISR(TIMER2_COMPA_vect) {
   }
 
   else{
-    // Jess suggestion 12/1, if the motor is idle, shouldn't we say to the stepper, do NOT step (LOW)
-    digitalWrite(stepPin, LOW);
+    digitalWrite(stepPin, HIGH);
   }
   dividerMotor++;
   dividerMotor%=80;//
