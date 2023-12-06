@@ -53,7 +53,7 @@ const short int digitPins[numberofDigits] = { 6,8,9, 12}; //digits 1, 2, 3, 4
 //setup button pins
 void buttonSetup(){
   for (int i=0; i < 4; i++){
-    pinMode(buttonPins[i], INPUT); //set segment and DP pins to output
+    pinMode(buttonPins[i], INPUT_PULLUP); //set segment and DP pins to output
   }
 
 }
@@ -163,7 +163,7 @@ void segmentPinSetup(){
 //it'll basically until the operator lets go off said button
 void debounceButton(short int pinNumber){
 
-  while(digitalRead(pinNumber) == LOW){
+  while(digitalRead(pinNumber) != LOW){
     //DO NOTHING BUT DISPLAY TIME
     displayTime();//display current selected time
     //stay in this while loop until the pin in question goes high again
@@ -172,53 +172,7 @@ void debounceButton(short int pinNumber){
 }
 
 
-  while(digitalRead(startPin) != HIGH){//be in this "SET TIME" MODE while start pin is low
-
-
-    //IF THE THE STOP BUTTON IS PRESSED
-    if(digitalRead(stopPin) != LOW){//clear time
-      //debounceButton(stopPin);//wait until stopPin is let go
-      clearTimer();//clear time
-    }
-
-    //IF THE INCREMENT BUTTON IS PRESSED
-    else if(digitalRead(incrementPin) != LOW){
-
-      debounceButton(incrementPin);//wait until incrementPin is let go
-
-      if(minOnes < 9 && minOnes >= 0){
-        minOnes +=1;//increment minsOnes place
-      }
-
-      else if(minOnes == 9 && minTens != 5){//ONES PLACE OVERFLOW CONDITION
-        minOnes = 0;//set ones place of mines to 0
-        minTens += 1;//incrmeent tens place of minutes
-      }
-
-    }
-
-
-    //IF THE DECREMENT BUTTON IS PRESSED
-    else if(digitalRead(decrementPin) != LOW){
-
-      debounceButton(decrementPin);//wait until incrementPin is let go
-
-      if(minOnes > 0 && minOnes <= 9){
-        minOnes -=1;//decrement minsOnes place
-      }
-
-      else if(minOnes == 0 && minTens != 0){//DECREMENTING TENS PLACE BY 1
-        minOnes = 9;//set ones place of mines to 0
-        minTens -= 1;//incrmeent tens place of minutes
-      }
-
-    }
-
-        displayTime();//display current selected time
-  }
-
-  debounceButton(startPin);//wait until start pin is let go
-
+  
 //USED FOR CLEARING SWING TIME
 void clearTimer(){
   secOnes = 0;
@@ -240,7 +194,7 @@ void displayTime(){
 //THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
 void decrementTimer(){
 
-      if(digitalRead(stopPin) == LOW){//IF STOP BUTTON PRESSED, CLEAR TIMER AND END SWING
+      if(digitalRead(stopPin) != LOW){//IF STOP BUTTON PRESSED, CLEAR TIMER AND END SWING
         //debounceButton(stopPin);
         clearTimer();//clear timer
       }
@@ -411,17 +365,76 @@ void motorRotatorLoop() {
 
 
 
+
+
+
+void getSwingTime(){
+
+  while(digitalRead(startPin) != HIGH){//be in this "SET TIME" MODE while start pin is low
+
+
+    //IF THE THE STOP BUTTON IS PRESSED
+    if(digitalRead(stopPin) != LOW){//clear time
+      clearTimer();//clear time
+      debounceButton(stopPin);//wait until stopPin is let go
+    }
+
+    //IF THE INCREMENT BUTTON IS PRESSED
+    if(digitalRead(incrementPin) != LOW){
+
+      debounceButton(incrementPin);//wait until incrementPin is let go
+
+      if(minOnes < 9 && minOnes >= 0){
+        minOnes +=1;//increment minsOnes place
+      }
+
+      else if(minOnes == 9 && minTens != 5){//ONES PLACE OVERFLOW CONDITION
+        minOnes = 0;//set ones place of mines to 0
+        minTens += 1;//incrmeent tens place of minutes
+      }
+
+    }
+
+
+    //IF THE DECREMENT BUTTON IS PRESSED
+    if(digitalRead(decrementPin) != LOW){
+
+      debounceButton(decrementPin);//wait until incrementPin is let go
+
+      if(minOnes > 0 && minOnes <= 9){
+        minOnes -=1;//decrement minsOnes place
+      }
+
+      else if(minOnes == 0 && minTens != 0){//DECREMENTING TENS PLACE BY 1
+        minOnes = 9;//set ones place of mines to 0
+        minTens -= 1;//incrmeent tens place of minutes
+      }
+
+    }
+
+        displayTime();//display current selected time
+  }
+
+  debounceButton(startPin);//wait until start pin is let go
+
+}
+
+
+
+
+
+
 void setup()
 {
 
  
   //USED FOR TESTING
-  /*
+  
   minTens = 1;//tens place for minutes
   minOnes = 3;//ones place for minutes
   secTens = 1;//tens place for seconds
   secOnes = 2;//ones place for seconds
-  */
+  
 
   
   motorIdle = true;
@@ -429,8 +442,11 @@ void setup()
   segmentPinSetup();//setup 7 segment pins
   getSwingTime();//get swing time from opereator via physical timer interface
   clockInterruptSetup();//setup clock interrupts
+
+  //SOMETHING ABOUT THE INTERRUPTS ARE FUCKING WITH THE INTERRUPTS
+
   SevenSegTimerSetup();
-  motorRotatorSetup();//setup motors
+  //motorRotatorSetup();//setup motors
   //motorIdle = false;
 
 }
@@ -445,13 +461,13 @@ void loop(){
   displayTime();
   //motorRotatorLoop();//move motors
 
-  if(secOnes != 0 || secTens != 0 && minOnes != 0 || minTens != 0){
+  /*if(secOnes != 0 || secTens != 0 && minOnes != 0 || minTens != 0){
       motorIdle = false;      
   }
 
   else{
     motorIdle == true;
-  }
+  }*/
 }
 
 
