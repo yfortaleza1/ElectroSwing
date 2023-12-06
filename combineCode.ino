@@ -4,6 +4,14 @@
 
 #include <time.h>
 #include <Stepper.h>
+#include "C:\Users\Marc\Desktop\LIS3DHTR.h"
+#include "C:\Users\Marc\Desktop\LIS3DHTR.cpp"
+
+#include <Wire.h>
+#include "C:\Users\Marc\Desktop\DigitalAccelerometer_ADXL345\DigitalAccelerometer_ADXL345\ADXL345.cpp"
+#include "C:\Users\Marc\Desktop\DigitalAccelerometer_ADXL345\DigitalAccelerometer_ADXL345\ADXL345.h"
+
+
 
 const int sensorPin= 0;//The analog sensor is connected to analog pin 0 of the arduino
 
@@ -429,20 +437,63 @@ void getSwingTime(){
 }
 
 
+
+//ACCELEROMETER STUFF
+
+ADXL345 adxl; //variable adxl is an instance of the ADXL345 library
+
+
 //SETS UP PINS FOR ACCELEMOETER
 void accelSetup(){
 
 
-  // initialize serial communication
   Serial.begin(9600);
+  adxl.powerOn();
 
-  //Provide ground and power using analog inputs as normal digital pins
-  pinMode(sdaPin, OUTPUT);
-  pinMode(sdlPin, OUTPUT);
-
-  digitalWrite(sdaPin, LOW);
-  digitalWrite(sdlPin, HIGH);
-
+  //set activity/ inactivity thresholds (0-255)
+  adxl.setActivityThreshold(75); //62.5mg per increment
+  adxl.setInactivityThreshold(75); //62.5mg per increment
+  adxl.setTimeInactivity(10); // how many seconds of no activity is inactive?
+ 
+  //look of activity movement on this axes - 1 == on; 0 == off 
+  adxl.setActivityX(1);
+  adxl.setActivityY(1);
+  adxl.setActivityZ(1);
+ 
+  //look of inactivity movement on this axes - 1 == on; 0 == off
+  adxl.setInactivityX(1);
+  adxl.setInactivityY(1);
+  adxl.setInactivityZ(1);
+ 
+  //look of tap movement on this axes - 1 == on; 0 == off
+  adxl.setTapDetectionOnX(0);
+  adxl.setTapDetectionOnY(0);
+  adxl.setTapDetectionOnZ(1);
+ 
+  //set values for what is a tap, and what is a double tap (0-255)
+  adxl.setTapThreshold(50); //62.5mg per increment
+  adxl.setTapDuration(15); //625us per increment
+  adxl.setDoubleTapLatency(80); //1.25ms per increment
+  adxl.setDoubleTapWindow(200); //1.25ms per increment
+ 
+  //set values for what is considered freefall (0-255)
+  adxl.setFreeFallThreshold(7); //(5 - 9) recommended - 62.5mg per increment
+  adxl.setFreeFallDuration(45); //(20 - 70) recommended - 5ms per increment
+ 
+  //setting all interrupts to take place on int pin 1
+  //I had issues with int pin 2, was unable to reset it
+  adxl.setInterruptMapping( ADXL345_INT_SINGLE_TAP_BIT,   ADXL345_INT1_PIN );
+  adxl.setInterruptMapping( ADXL345_INT_DOUBLE_TAP_BIT,   ADXL345_INT1_PIN );
+  adxl.setInterruptMapping( ADXL345_INT_FREE_FALL_BIT,    ADXL345_INT1_PIN );
+  adxl.setInterruptMapping( ADXL345_INT_ACTIVITY_BIT,     ADXL345_INT1_PIN );
+  adxl.setInterruptMapping( ADXL345_INT_INACTIVITY_BIT,   ADXL345_INT1_PIN );
+ 
+  //register interrupt actions - 1 == on; 0 == off  
+  adxl.setInterrupt( ADXL345_INT_SINGLE_TAP_BIT, 1);
+  adxl.setInterrupt( ADXL345_INT_DOUBLE_TAP_BIT, 1);
+  adxl.setInterrupt( ADXL345_INT_FREE_FALL_BIT,  1);
+  adxl.setInterrupt( ADXL345_INT_ACTIVITY_BIT,   1);
+  adxl.setInterrupt( ADXL345_INT_INACTIVITY_BIT, 1);
 
 }
 
@@ -450,28 +501,74 @@ void accelSetup(){
 /*
 * Displays accelerometer reading at every given time interval 
 */
-void getAccel(int time){
-  // put your main code here, to run repeatedly:
+void getAccel(){
+  
+	//Boring accelerometer stuff   
+	int x,y,z;  
+	adxl.readXYZ(&x, &y, &z); //read the accelerometer values and store them in variables  x,y,z
+	// Output x,y,z values 
+	Serial.print("values of X , Y , Z: ");
+	Serial.print(x);
+	Serial.print(" , ");
+	Serial.print(y);
+	Serial.print(" , ");
+	Serial.println(z);
+	
+	double xyz[3];
+	double ax,ay,az;
+	adxl.getAcceleration(xyz);
+	ax = xyz[0];
+	ay = xyz[1];
+	az = xyz[2];
+	Serial.print("X=");
+	Serial.print(ax);
+    Serial.print(" g");
+	Serial.print("Y=");
+	Serial.print(ay);
+    Serial.print(" g");
+	Serial.print("Z=");
+	Serial.print(az);
+    Serial.println(" g");
+	Serial.println("**********************");
+	//delay(500);
+/*
 
-  //print the sensor values:
-  Serial.print("x-axis: ");
-  Serial.println(analogRead(xPin));
-  Serial.print("\r");
-  Serial.print("\n");
-
-  Serial.print("y-axis: ");
-  Serial.println(analogRead(yPin));
-  Serial.print("\r");
-  Serial.print("\n");
-
-  Serial.print("z-axis: ");
-  Serial.println(analogRead(zPin));
-  Serial.print("\r");
-  Serial.print("\n");
-
-  Serial.println();
-  //delay before next reading
-  delay(time);
+  //Fun Stuff!    
+  //read interrupts source and look for triggerd actions
+  
+  //getInterruptSource clears all triggered actions after returning value
+  //so do not call again until you need to recheck for triggered actions
+   byte interrupts = adxl.getInterruptSource();
+  
+  // freefall
+  if(adxl.triggered(interrupts, ADXL345_FREE_FALL)){
+    Serial.println("freefall");
+    //add code here to do when freefall is sensed
+  } 
+  
+  //inactivity
+  if(adxl.triggered(interrupts, ADXL345_INACTIVITY)){
+    Serial.println("inactivity");
+     //add code here to do when inactivity is sensed
+  }
+  
+  //activity
+  if(adxl.triggered(interrupts, ADXL345_ACTIVITY)){
+    Serial.println("activity"); 
+     //add code here to do when activity is sensed
+  }
+  
+  //double tap
+  if(adxl.triggered(interrupts, ADXL345_DOUBLE_TAP)){
+    Serial.println("double tap");
+     //add code here to do when a 2X tap is sensed
+  }
+  
+  //tap
+  if(adxl.triggered(interrupts, ADXL345_SINGLE_TAP)){
+    Serial.println("tap");
+     //add code here to do when a tap is sensed
+  } */
 }
 
 
@@ -510,7 +607,8 @@ void setup()
 //MOTOR WILL KEEP OSCILLATING SO LONG AS THERE'S TIME REMAINING
 //ONCE TIME RUNS OUT THE SEVEN SEG SHOULD DISPLAY 00:00 FOREVER
 void loop(){
-  displayTime();
+  //displayTime();
+  getAccel();
   //motorRotatorLoop();//move motors
 
   /*if(secOnes != 0 || secTens != 0 && minOnes != 0 || minTens != 0){
@@ -543,6 +641,7 @@ ISR(TIMER0_COMPA_vect) {
   cli();//disable interrupts
   if(divider==0){
     displayTime();
+    //getAccel();
   }
   divider++;
   divider%=100;
