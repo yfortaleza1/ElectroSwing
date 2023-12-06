@@ -42,12 +42,21 @@ bool motorIdle = false;
 
 //pins for decimal point and each segment
 //dp, G, F, E, D, C, B, A
-const short int segmentPins[]= { 1, 2, 3, 4, 5, 7, 10, 11};///used for 7 segment
+const short int segmentPins[]= { 2, 3, 4, 5, 6, 8, 11, 12};///used for 7 segment
 const short int buttonPins[] = {incrementPin,decrementPin,startPin,stopPin};;//used for buttons
 
 const short int numberofDigits=4;
 
-const short int digitPins[numberofDigits] = { 6,8,9, 12}; //digits 1, 2, 3, 4
+const short int digitPins[numberofDigits] = { 7,9,10,13}; //digits 1, 2, 3, 4
+
+
+
+//ACCEL VARIABLES
+const int sdaPin = A4; //analog input 4 -- ground
+const int sdlPin = A5; //analog input 5 -- voltage
+const int xPin = A3; //x-axis
+const int yPin = A2; //y-axis
+const int zPin = A1; //z-axis
 
 
 //setup button pins
@@ -420,7 +429,50 @@ void getSwingTime(){
 }
 
 
+//SETS UP PINS FOR ACCELEMOETER
+void accelSetup(){
 
+
+  // initialize serial communication
+  Serial.begin(9600);
+
+  //Provide ground and power using analog inputs as normal digital pins
+  pinMode(sdaPin, OUTPUT);
+  pinMode(sdlPin, OUTPUT);
+
+  digitalWrite(sdaPin, LOW);
+  digitalWrite(sdlPin, HIGH);
+
+
+}
+
+
+/*
+* Displays accelerometer reading at every given time interval 
+*/
+void getAccel(int time){
+  // put your main code here, to run repeatedly:
+
+  //print the sensor values:
+  Serial.print("x-axis: ");
+  Serial.println(analogRead(xPin));
+  Serial.print("\r");
+  Serial.print("\n");
+
+  Serial.print("y-axis: ");
+  Serial.println(analogRead(yPin));
+  Serial.print("\r");
+  Serial.print("\n");
+
+  Serial.print("z-axis: ");
+  Serial.println(analogRead(zPin));
+  Serial.print("\r");
+  Serial.print("\n");
+
+  Serial.println();
+  //delay before next reading
+  delay(time);
+}
 
 
 
@@ -443,10 +495,10 @@ void setup()
   getSwingTime();//get swing time from opereator via physical timer interface
   clockInterruptSetup();//setup clock interrupts
 
-  //SOMETHING ABOUT THE INTERRUPTS ARE FUCKING WITH THE INTERRUPTS
 
   SevenSegTimerSetup();
-  //motorRotatorSetup();//setup motors
+  motorRotatorSetup();//setup motors
+  accelSetup();
   //motorIdle = false;
 
 }
