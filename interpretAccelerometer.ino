@@ -43,6 +43,7 @@ double accelerationToAngle(double accelerometer_reading[NUM_ACCELEROMETER_FLOATS
 
 bool areLengthsMatching(int array1[], int array2[], int length) 
 {
+    // todo: fix to work with {t1, t2, t3} and {s1, s2}. 
     if ((sizeof(array1) / sizeof(int)) != 
         (sizeof(array2) / sizeof(int)) != 
         length)  {
@@ -58,10 +59,28 @@ float getMotorStrength(int angle_ranges_arr[], int strengths_arr[],
 {
     /*
     Use defined theta ranges to determine what motor strength to apply
+    todo: if using this {t1, t2, ...} strat instead of pairs, figure out how to make sure lengths match.
     Example `angle_ranges_arr`: {0, 15, 30, 45, 60}
         I will just use every two with the first being non-inclusive 
         and the last being inclusive.
         i.e. [0, 15), [15, 30), [30, 45)
+    Example `strengths_arr`: {5000, 4000, 3000, 2000, 1000}
+        So with the example angles above it would apply the following strengths 
+        for the given ranges
+        5000: [0, 15)
+        4000: [15, 30)
+        3000: [30, 45)
+        2000: [45, 60)
     */
+    double angle_reading = accelerationToAngle(accelerometer_reading);
+    for (int i = 0; i < arr_length; i ++) {
+        int curr_min_angle = angle_ranges_arr[i];
+        int curr_max_angle = angle_ranges_arr[i+1];
+        int curr_strength = strengths_arr[i];
+        if (curr_min_angle <= angle_reading < curr_max_angle) {
+            return curr_strength;
+        }
+    }
+    // if its not in any of the specified range, 
     return DEFAULT_MOTOR_STRENGTH;
 }
