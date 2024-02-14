@@ -1,3 +1,7 @@
+// todo: consider constant acceleration and decelleration 
+// i.e. from this person building a robot arm:
+// https://www.youtube.com/watch?v=Im2Dnc9_Ifo
+
 #define DEFAULT_FORCE 0
 #define DEFAULT_MOTOR_STRENGTH 0
 #define NUM_ACCELEROMETER_FLOATS 3 // (x,y,z)
