@@ -1,3 +1,5 @@
+// todo: ensure we are compatible with https://seeeddoc.github.io/Grove-3-Axis_Digital_Accelerometer-16g/
+
 // todo: consider constant acceleration and decelleration 
 // i.e. from this person building a robot arm:
 // https://www.youtube.com/watch?v=Im2Dnc9_Ifo
@@ -20,6 +22,8 @@ double forceToMotorStrength(double force)
 
 /* Source: https://wizmoz.blogspot.com/2013/01/simple-accelerometer-data-conversion-to.html 
 Written for a ADXL345 accelerometer.
+todo: verify if this is similar to the accelerometer we actually have 
+https://seeeddoc.github.io/Grove-3-Axis_Digital_Accelerometer-16g/
 */
 double accelerationToAngle(double accelerometer_reading[NUM_ACCELEROMETER_FLOATS]) {
     /* example accelerometer_reading = adxl.get_Gxyz(xyz); */
