@@ -1,0 +1,1 @@
+Graphical Artifacts that help explain what our project does!

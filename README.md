@@ -1,16 +1,33 @@
 # ElectroSwing
-Codebase for Ava's Motorized Swing
+Codebase for the control portion of our system, "Ava's Motorized Swing".
 
-## Timer
-### LCD
-Source: https://www.shecodes.io/athena/38307-how-to-create-a-timer-with-lcd-display-using-arduino
-### 7 Segment
-Source: https://projecthub.arduino.cc/dmytrosavchuk/adjustable-countdown-timer-382ea8
+Our control system consists of a timer interface that 
+allows Ava's parents to set and stop the swing operation time.
+
+<figure>
+    <img style="width:400px;" src="./diagrams/SBD.jpg">
+    <figcaption>Fig 1. System Boundary Diagram (SBD)</figcaption>
+</figure>
+
+<figure>
+    <img style="width:400px;" src="./diagrams/DFD_for_SOW.png">
+    <figcaption>
+        Fig 2. Data Flow Diagram (DFD). 
+        This Repo contains the software for the controller (orange) portion.
+    </figcaption>
+</figure>
+
+## Build instructions
+TODO: fill this in. i.e. Use the arduino IDE and run `primary.ino`
 
 ## Directories
 ### ./main
-Source files
-### ./bin
-Executables
-### ./build
-Dependency .o files
+Source files.
+
+### ./reference_code
+This project contains a lot of iterative design ideas, 
+particularly for the motor and timer functionality.
+To keep that legacy, some of that has been stored in this folder.
+
+It also contains some source code that we got from arduino documentation 
+and other open source projects.
