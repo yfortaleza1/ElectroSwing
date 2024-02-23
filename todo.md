@@ -1,13 +1,9 @@
-Wed. 11/15/2023 - Wed. 11/22/2023
-- ~~ [ ] (optional) LCD Timer for prototype ~~
-    - [X] Code
-    - [X] Circuit 
-- [ ] 7 segment Timer
-    - [X] Code
-    - [X] Circuit
-- [ ] Writup README for plans to integrate 
-        things (motor, buttons/control) together
-Upcoming:
-- [ ] (Put everything together) 
-    - Header files, linkage -> 1 main.ino
-    - [ ] motorRotator.ino -> main.ino
+- [ ] IMPORTANT: pull Marc's primary.ino and secondary.ino to this branch.
+- [ ] Explain current control structure in README.md
+- [ ] Verify/finalize control structure w/ accelerometer
+    - [ ] Test accelerometer using the Java plotting scripts.
+        - visually verify that the accelerometer 
+        is providing the data we think it is 
+        (i.e. the angle of the swing)
+    - [ ] Determine what strengths to give the motor depending on the angle.
+        i.e. 
