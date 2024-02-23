@@ -1,0 +1,41 @@
+import processing.serial.*;
+
+Serial myPort;  // Create object from Serial class
+String val;     // Data received from the serial port
+boolean triggerSorting;
+
+void setup()
+{
+  // On Windows machines, this generally opens COM1.
+  // Open whatever port is the one you're using.
+  String portName = Serial.list()[0];
+  myPort = new Serial(this, portName, 9600);
+  triggerSorting=false;
+}
+
+void draw()
+{
+  if ( myPort.available() > 0)
+  {  // If data is available,
+    val = myPort.readStringUntil('\n');         // read it and store it in val
+    int intVal = Integer.parseInt(val.trim());
+
+    //For example, if potentiometer value is larger than 10, trigger sorting
+    //The value of 10 is arbitrary and chosen for demonstration purposes.
+    if(intVal>10){
+      triggerSorting=true;
+    }
+  }
+
+  //NEXT performs sorting only if it has received proper data
+  if(triggerSorting==true){
+
+    //
+    //.....DO YOUR SORTING OPERATION HERE
+    //
+
+    triggerSorting=false; //RESET for next read operation
+  }
+
+  println(val); //print it out in the console
+}
