@@ -18,7 +18,9 @@ allows Ava's parents to set and stop the swing operation time.
 </figure>
 
 ## Build instructions
-TODO: fill this in. i.e. Use the arduino IDE and run `primary.ino`
+
+<span style="color:red;">TODO: fill this in. </span>
+i.e. Use the arduino IDE and run `primary.ino`
 
 ## Directories
 ### ./main

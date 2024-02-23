@@ -1,5 +1,6 @@
-- [ ] IMPORTANT: pull Marc's primary.ino and secondary.ino to this branch.
+- [X] Pull Marc's primary.ino and secondary.ino to this branch.
 - [ ] Explain current control structure in README.md
+    - [] <span style="color:red;">Fill in Build Instructions</span>
 - [ ] Verify/finalize control structure w/ accelerometer
     - [ ] Test accelerometer using the Java plotting scripts.
         - visually verify that the accelerometer 
