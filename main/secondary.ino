@@ -14,6 +14,7 @@ const short int masterPin = 2;
 const short int stepPin = 3;
 const short int dirPin = 4;
 const short int enPin = 5;
+const short int anglePins[] = {6, 7, 8, 9, 10, 11, 12, 13, 14};
 
 // INCREASE VALUE BY 50 TO GET A QUATER CIRCLE OF MOTION AT MOTOR STRENGTH 965
 const int SPIN_TIME = 400; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
@@ -164,7 +165,13 @@ void determineMotorStrength(){
   //check to see what angle range motor is in and select motorStrength
   for(int i = 0; i < numAngles-1; i++){
     if(xAngle >= angles[i] && xAngle < angles[i+1]){
-      motorStrength = motorStrengths[i];//select motor strength
+
+       motorStrength = motorStrengths[i];//select motor strength
+
+       //select led to indicate which angle range load is in
+       turnOffLED();//TURN OFF all LEDS
+       digitalWrite(anglePins[i], HIGH);//turn on respective angle LED
+
       return;
     }
   }
@@ -206,12 +213,28 @@ void moveMotors(){
 
 }
 
+//setup LED pins to show what angle load is in
+void setupLED(){
+  for(int i =0; i< sizeof(anglePins)/sizeof(short int); i++){
+    pinMode(anglePins[i], OUTPUT);
+  }
+}
 
+//turnoff all leds
+void turnOffLED(){
+  for(int i =0; i < sizeof(anglePins)/sizeof(short int); i++){
+    digitalWrite(anglePins[i], LOW);
+  }
+}
+
+
+
+//sets everything up
 void setup() {
   Serial.begin(9600); // Initiate serial communication for printing the results on the Serial monitor
- 
-  setupAccel();
-  setupMotors();
+  setupLED();//setup LEDs
+  setupAccel();//setup acceleterometer
+  setupMotors();//setup motors
   
 }
 
