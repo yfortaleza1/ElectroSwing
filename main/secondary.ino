@@ -1,4 +1,11 @@
 /*
+* Project: Ava's Motorized Swing
+* File:    accelRead.ino
+* Authors: Marc, Jess, Yoel
+*/
+
+
+/*
     Arduino and ADXL345 Accelerometer - 3D Visualization Example 
      by Dejan, https://howtomechatronics.com
 */
