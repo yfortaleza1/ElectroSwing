@@ -7,6 +7,8 @@
 #define DEFAULT_FORCE 0
 #define DEFAULT_MOTOR_STRENGTH 0
 #define NUM_ACCELEROMETER_FLOATS 3 // (x,y,z)
+#define INVALID_DOMAINS -1
+
 #define X_INDEX 0
 #define Y_INDEX 1
 #define Z_INDEX 2
@@ -45,12 +47,11 @@ double accelerationToAngle(double accelerometer_reading[NUM_ACCELEROMETER_FLOATS
     return xAngle;
 }
 
-bool areLengthsMatching(int array1[], int array2[], int length) 
+bool areLengthsMatching(int angle_ranges_arr[], int strengths_arr[], int num_strengths) 
 {
-    // todo: fix to work with {t1, t2, t3} and {s1, s2}. 
-    if ((sizeof(array1) / sizeof(int)) != 
-        (sizeof(array2) / sizeof(int)) != 
-        length)  {
+    if ((sizeof(angle_ranges_arr) / sizeof(int)) - 1 != 
+        (sizeof(strengths_arr) / sizeof(int)) != 
+        num_strengths)  {
         return false;
     } else {
         return true;
@@ -58,12 +59,11 @@ bool areLengthsMatching(int array1[], int array2[], int length)
 } 
 
 float getMotorStrength(int angle_ranges_arr[], int strengths_arr[],
-                       int arr_length, 
+                       int strengths_length, 
                        double accelerometer_reading[NUM_ACCELEROMETER_FLOATS]) 
 {
     /*
     Use defined theta ranges to determine what motor strength to apply
-    todo: if using this {t1, t2, ...} strat instead of pairs, figure out how to make sure lengths match.
     Example `angle_ranges_arr`: {0, 15, 30, 45, 60}
         I will just use every two with the first being non-inclusive 
         and the last being inclusive.
@@ -76,8 +76,12 @@ float getMotorStrength(int angle_ranges_arr[], int strengths_arr[],
         3000: [30, 45)
         2000: [45, 60)
     */
+    if (! areLengthsMatching(angle_ranges_arr, strengths_arr, strengths_length)) {  
+        return INVALID_DOMAINS;
+    }
+
     double angle_reading = accelerationToAngle(accelerometer_reading);
-    for (int i = 0; i < arr_length; i ++) {
+    for (int i = 0; i < strengths_length; i ++) {
         int curr_min_angle = angle_ranges_arr[i];
         int curr_max_angle = angle_ranges_arr[i+1];
         int curr_strength = strengths_arr[i];
