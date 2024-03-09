@@ -21,7 +21,7 @@ const short int masterPin = 2;
 const short int stepPin = 3;
 const short int dirPin = 4;
 const short int enPin = 5;
-const short int anglePins[] = {6, 7, 8, 9, 10, 11, 12, 13, 14};
+const short int anglePins[] = {6, 7, 8, 9, 10, 11, 12, 13};
 
 // INCREASE VALUE BY 50 TO GET A QUATER CIRCLE OF MOTION AT MOTOR STRENGTH 965
 const int SPIN_TIME = 400; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
@@ -29,8 +29,8 @@ const int SPIN_TIME = 400; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
 
 const int ADXL345 = 0x53; // The ADXL345 sensor I2C address
 
-const int numAngles = 6;
-const int angles[] = {-90, -75,-60, -45,-30,-15, 0};
+const int numAngles = 7;
+const int angles[] = {0,15,30,45,60,75,80.95};
 const int motorStrengths[] = {400, 500, 600, 700, 800};
 
 float motorStrength = 0;
@@ -101,11 +101,11 @@ void getAccel(){
 void getAngle (){
   
     xAngle = atan( X_out / (sqrt(pow(Y_out, 2) + pow(Z_out, 2))));
-    //yAngle = atan( Y_out / (sqrt(pow(X_out, 2) + pow(Z_out, 2))));
-    //zAngle = atan( sqrt(pow(X_out, 2) + pow(Y_out, 2)) / Z_out);
+    yAngle = atan( Y_out / (sqrt(pow(X_out, 2) + pow(Z_out, 2))));
+    zAngle = atan( sqrt(pow(X_out, 2) + pow(Y_out, 2)) / Z_out);
 
-    xAngle *= 180.00;   //yAngle *= 180.00;   zAngle *= 180.00;
-    xAngle /= 3.141592; //yAngle /= 3.141592; zAngle /= 3.141592;
+    xAngle *= 180.00;   yAngle *= 180.00;   zAngle *= 180.00;
+    xAngle /= 3.141592; yAngle /= 3.141592; zAngle /= 3.141592;
 }
 
 //get roll and pitch from acceleration values
@@ -140,7 +140,7 @@ bool movingFoward(){
   //xAngle should be getting closer to 0 if it's moving foward
   //xAngle should always have a negative value
   //so the closer xAngle is to 0, the more Ava will face up towards the sky 
-  if(prevXAngle < xAngle){
+  if(prevXAngle > xAngle){
     //return true to indicate that load is moving forward
     return true;
   }
@@ -171,7 +171,7 @@ void determineMotorStrength(){
   
   //check to see what angle range motor is in and select motorStrength
   for(int i = 0; i < numAngles-1; i++){
-    if(xAngle >= angles[i] && xAngle < angles[i+1]){
+    if(rollF >= angles[i] && rollF < angles[i+1]){
 
        motorStrength = motorStrengths[i];//select motor strength
 
@@ -247,29 +247,32 @@ void setup() {
 
 void loop() {
   
-  Serial.print("X angle: ");
-  Serial.println(xAngle);
-  /*
+  /*Serial.print("X angle: ");
+  Serial.print(xAngle);
+  
   Serial.print(" Y angle: ");
   Serial.print(yAngle);
+  
   Serial.print(" Z angle: ");
-  Serial.println(zAngle);
-  */
+  Serial.println(zAngle);*/
+  
 
 
   getAccel();//update acceleration values
   getAngle();//update angle values
+  determineMotorStrength();//determine motorStrength
+  //delay(800);
 
   //check to see if its okay to move motors
-  if(inMotorTurnOnZone() == true && movingFoward() == true){
+  /*if(inMotorTurnOnZone() == true && movingFoward() == true){
     determineMotorStrength();//determine motorStrength
     moveMotors();//move the motors
-  }
-  delay(1000);
+  }*/
+  //delay(1000);
 
-  /*
-  Serial.print(roll);
+  getRollAndPitch();
+  Serial.print(rollF);
   Serial.print("/");
-  Serial.println(pitch);
-  */
+  Serial.println(pitchF);
+
 }
