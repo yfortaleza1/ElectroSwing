@@ -29,9 +29,9 @@ const int SPIN_TIME = 400; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
 
 const int ADXL345 = 0x53; // The ADXL345 sensor I2C address
 
-const int numAngles = 6;
-const int angles[] = {-90, -75,-60, -45,-30,-15, 0};
-const int motorStrengths[] = {400, 500, 600, 700, 800};
+const int numAngles = 2 // 6;
+const int angles[] = {-135, -90};// {-90, -75,-60, -45,-30,-15, 0};
+const int motorStrengths[] = {400}; // {400, 500, 600, 700, 800};
 
 float motorStrength = 0;
 float X_out, Y_out, Z_out;  // Outputs
