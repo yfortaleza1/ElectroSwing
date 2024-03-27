@@ -1,3 +1,14 @@
+/*
+Name: primary.ino
+Authors: Marc Conn
+(soon to be contributers - Yoel Fortaleza, Jess Turner)
+Date: 3/27 (planning on changing this current code to be LCD display rather than seven segment)
+Description: 
+This file will control the timing for the swing system.
+Todo: use master pin to signal to secondary that it can do its logic. 
+(Meaning that ride time is not zero, so it should continue swinging.)
+*/
+
 //THIS IS USING ATMEGA2560 
 //ONLY WORKS FOR THE MEGA REV3, THE ONE WE ARE PLANNING ON USING FOR THE FINAL PRODUCT
 //THIS CODE WON'T WORK ON THE UNO BECCAUSE OF DIFFERENT REGISTERS AND CLOCK SPEED (NEED TO CONFIRM)
