@@ -1,5 +1,9 @@
 # ElectroSwing
 Codebase for the control portion of our system, "Ava's Motorized Swing".
+<figure>
+    <img style="width:200px; background-color:white;" src="./diagrams/Avas_Swing_Logo.png">
+    <figcaption>Our Team Logo!</figcaption>
+</figure>
 
 Our control system consists of a timer interface that 
 allows Ava's parents to set and stop the swing operation time.
