@@ -25,19 +25,47 @@ const short int anglePins[] = {6, 7, 8, 9, 10, 11, 12, 13};
 
 // INCREASE VALUE BY 50 TO GET A QUATER CIRCLE OF MOTION AT MOTOR STRENGTH 965
 const int SPIN_TIME = 400; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
-
+const int MAX_ANGLE = -45;
 
 const int ADXL345 = 0x53; // The ADXL345 sensor I2C address
 
 const int numAngles = 7;
 const int angles[] = {0,15,30,45,60,75,80.95};
 const int motorStrengths[] = {400, 500, 600, 700, 800};
+const int DEFAULT_MOTOR_STRENGTH = 900;
+const int WACKY_MOTOR_STRENGTH = -1;
+const int minTurnOnAngle = 0;
+const int maxTurnOnAngle = -15;
+
 
 float motorStrength = 0;
 float X_out, Y_out, Z_out;  // Outputs
 float roll,pitch,rollF,pitchF=0;
 float prevXAngle, xAngle, yAngle, zAngle;//holds angle in respective deminsion
 
+int currMaxAngle = 0;//keeps track of max angle on return swings in quadrant 3
+int prevRoll = 0;//used in movingFoward function to determine if the swing is moving foward
+
+//used to determine if load should be pushed by angle based on timer based
+//in the setup function
+bool accelWorks = false;//keeps track if accelerometer works on startup
+
+//setup LED pins to show what angle load is in
+//USED FOR TESTING
+void setupLED(){
+
+  for(int i =0; i< sizeof(anglePins)/sizeof(short int); i++){
+    pinMode(anglePins[i], OUTPUT);//set direction of LED pins
+  }
+}
+
+//turnoff all leds
+//USED FOR TESTING
+void turnOffLED(){
+  for(int i =0; i < sizeof(anglePins)/sizeof(short int); i++){
+    digitalWrite(anglePins[i], LOW);
+  }
+}
 
 void setupAccel() {
   Wire.begin(); // Initiate the Wire library
@@ -78,7 +106,7 @@ void offsetCalibration (){
 
 void getAccel(){
   //store previous angles, before geting new acceleration
-  prevXAngle = xAngle;
+  //prevXAngle = xAngle;
   //prevYAngle = Y_out;//dont need this
   //prevZAngle = Z_out;//dont need this   
 
@@ -110,6 +138,9 @@ void getAngle (){
 
 //get roll and pitch from acceleration values
 void getRollAndPitch() {
+
+  prevRoll = rollF;//store the previous roll, used in movingFoward function.
+
   // Calculate Roll and Pitch (rotation around X-axis, rotation around Y-axis)
   pitch = atan(-1 * X_out / sqrt(pow(Y_out, 2) + pow(Z_out, 2))) * 180 / PI;
   roll = atan(Y_out / sqrt(pow(X_out, 2) + pow(Z_out, 2))) * 180 / PI;
@@ -125,7 +156,9 @@ void getRollAndPitch() {
 //return true if the load is in the right location
 //return false if not
 bool inMotorTurnOnZone (){
-   if(xAngle <= 0 && xAngle >= -90){
+   //basically is saying if load is between 0 and -15, then
+   //then its fine for the motors to kick on
+   if(rollF <= minTurnOnAngle && rollF >= maxTurnOnAngle){
     return true;
    }
 
@@ -140,7 +173,7 @@ bool movingFoward(){
   //xAngle should be getting closer to 0 if it's moving foward
   //xAngle should always have a negative value
   //so the closer xAngle is to 0, the more Ava will face up towards the sky 
-  if(prevXAngle > xAngle){
+  if(prevRoll > rollF){
     //return true to indicate that load is moving forward
     return true;
   }
@@ -170,70 +203,122 @@ void setupMotors() {
 void determineMotorStrength(){
   
   //check to see what angle range motor is in and select motorStrength
-  for(int i = 0; i < numAngles-1; i++){
-    if(rollF >= angles[i] && rollF < angles[i+1]){
+  
+  if(currMaxAngle < rollF){//updates the max angle if rollF is steeper
+    currMaxAngle = rollF;
+  }
 
-       motorStrength = motorStrengths[i];//select motor strength
+  if(currMaxAngle < MAX_ANGLE){//angle is too steep then 
+    motorStrength = WACKY_MOTOR_STRENGTH;//indicate the motor shouldnt shouldn't push by assigning meaningless value
+  }
 
-       //select led to indicate which angle range load is in
-       turnOffLED();//TURN OFF all LEDS
-       digitalWrite(anglePins[i], HIGH);//turn on respective angle LED
+  else{
+    for(int i = 0; i < numAngles-1; i++){
+      if(rollF >= angles[i] && rollF < angles[i+1]){
 
-      return;
+        motorStrength = motorStrengths[i];//select motor strength
+
+        //select led to indicate which angle range load is in
+        //turnOffLED();//TURN OFF all LEDS
+        digitalWrite(anglePins[i], HIGH);//turn on respective angle LED
+
+        return;
+      }
     }
   }
 
-  //some error checking code should go here
-  //if angle isn't within proper swing motion range in quadrants 3 and 4
-  //something is wrong and motors should be turned off and program should be stopped.
+
 
 }
+
+
+
 
 
 //Function that moves motors at specified strength
 void moveMotors(){
 
    //cli();
-    digitalWrite(dirPin, HIGH); // Enables the motor to move in a particular direction
-    for (int x = 0; x < SPIN_TIME; x++)
-    { // SPIN_TIME VALUE DICTATES HOW LONG MOTOR WILL SPIN
-        digitalWrite(stepPin, HIGH);
-        delayMicroseconds(motorStrength);
-        digitalWrite(stepPin, LOW);
-        delayMicroseconds(motorStrength);
-    }
 
-    // THIS DELAY IS WEIRD, BUT NEED TO BE INCLUDED OR ELSE THE CODE WONT WORK
-    // REASON UNCLEAR
-    delay(10);                 // THIS NEEDS TO BE HERE
+   //do nothing it was determined in determine motor strength function
+   //that Ava on the return swing max angle was greater than -45
+   //if that was true, motor strength should have been set to 
+   //WACKY_MOTOR_STRENGTH
+   if(motorStrength == WACKY_MOTOR_STRENGTH){
+      
+      //setting the enable pin high on the microsteppr, prevents the motor from moving
+      //setting the enable pin low on the microstepper, allows the motor to move
+      //basically when the program counter is outside of this function
+      //the enable pin should be High so that the motor doesn't accidently move
+      digitalWrite(enPin, HIGH);//prevents the motor from moving
+      return;//do nothing
+   }
 
-    
-    //PUT ANOTHER MOTOR MOVE LOOP HERE IF you want
-    //But for now disable motors until next function call
-    digitalWrite(dirPin, LOW); // Enables the motor to move in a particular direction
+   else{
+
+      digitalWrite(enPin, LOW);//allows the motor to move
+
+      digitalWrite(dirPin, HIGH); // Enables the motor to move in a particular direction
+      for (int x = 0; x < SPIN_TIME; x++)
+      { // SPIN_TIME VALUE DICTATES HOW LONG MOTOR WILL SPIN
+          digitalWrite(stepPin, HIGH);
+          delayMicroseconds(motorStrength);
+          digitalWrite(stepPin, LOW);
+          delayMicroseconds(motorStrength);
+      }
+
+      // THIS DELAY IS WEIRD, BUT NEED TO BE INCLUDED OR ELSE THE CODE WONT WORK
+      // REASON UNCLEAR
+      delay(10);                 // THIS NEEDS TO BE HERE
+
+      
+      //PUT ANOTHER MOTOR MOVE LOOP HERE IF you want
+      //But for now disable motors until next function call
+      digitalWrite(dirPin, LOW); // Enables the motor to move in a particular direction
 
 
-    // THERE HAS TO BE AT MINIMUM A 2 SECOND DELAY, TO ENSURE THE MOTOR DOESNT MISFIRE IN THE WRONG DIRECTION
-    // THERE IS SOME AMOUNT OF DELAY WHEN THE SIGNAL GOES THROUGH THE MICROSTEPPER
-    // NEED TO GET GIVE SIGNALS MORE TIME TO PASS THROUGH BEFORE NEXT INSTRUCTION
-    delay(2000); // Two Second Delay
+      // THERE HAS TO BE AT MINIMUM A 2 SECOND DELAY, TO ENSURE THE MOTOR DOESNT MISFIRE IN THE WRONG DIRECTION
+      // THERE IS SOME AMOUNT OF DELAY WHEN THE SIGNAL GOES THROUGH THE MICROSTEPPER
+      // NEED TO GET GIVE SIGNALS MORE TIME TO PASS THROUGH BEFORE NEXT INSTRUCTION
+      delay(2000); // Two Second Delay
+   }
+
+    digitalWrite(enPin, HIGH);//prevents the motor from moving
 
 }
 
-//setup LED pins to show what angle load is in
-void setupLED(){
-  for(int i =0; i< sizeof(anglePins)/sizeof(short int); i++){
-    pinMode(anglePins[i], OUTPUT);
+
+
+
+//this function is used to determine if the
+//the acceleteromter is in quadrant 4
+//of the unit circle
+//this maps to being between 0 and 90
+bool inQuadrantFour(){
+  if(rollF > 0 && rollF <= 90){//if in angle range
+    return true;
   }
+  return false;//else return false
 }
 
-//turnoff all leds
-void turnOffLED(){
-  for(int i =0; i < sizeof(anglePins)/sizeof(short int); i++){
-    digitalWrite(anglePins[i], LOW);
+//this function is used to determine if the
+//the acceleteromter is in quadrant 3
+//of the unit circle
+//this maps to being between 0 and -90
+bool inQuadrantThree(){
+  if(rollF <= 0 && rollF > -90){//if in angle range
+    return true; 
   }
+
+  return false;
 }
 
+
+//function for determining if acceleteromet is offline
+//haven't worked out the logic for it yet
+bool accelOffline(){
+  return false;
+}
 
 
 //sets everything up
@@ -242,6 +327,8 @@ void setup() {
   setupLED();//setup LEDs
   setupAccel();//setup acceleterometer
   setupMotors();//setup motors
+
+  accelWorks = accelOffline();
   
 }
 
@@ -257,22 +344,50 @@ void loop() {
   Serial.println(zAngle);*/
   
 
+  //this while loop needs to be replaced with interupt code
+  //basically if it's detected that while the program is running
+  //the acceleterometer isn't working.
+  //the program counter will be stuck in this while loop forever,
+  //until the system is restarted.
+  //at this point the system will be blind to how ava is currently swinging
+  //and its not safe to move her.
+  while(accelWorks != accelOffline){
+    //stop program
+    //set enable pin high
+    digitalWrite(enPin, HIGH);//prevents the motor from moving
 
-  getAccel();//update acceleration values
-  getAngle();//update angle values
-  determineMotorStrength();//determine motorStrength
-  //delay(800);
+  }
 
-  //check to see if its okay to move motors
-  /*if(inMotorTurnOnZone() == true && movingFoward() == true){
-    determineMotorStrength();//determine motorStrength
-    moveMotors();//move the motors
-  }*/
+  //functionality for how to move Ava when the acceleomter is working
+  while(accelOffline() == false){//if accel is online do angle based pushing
+
+    getAccel();//update acceleration values
+    getAngle();//update angle values
+    getRollAndPitch();//get roll and pitch values
+
+
+    if(movingFoward() == false && inQuadrantThree() == true){
+      determineMotorStrength();//determine motorStrength
+    }
+    //check to see if its okay to move motors
+    if(inMotorTurnOnZone() == true && movingFoward() == true){
+      moveMotors();//move the motors
+    }
+  }
+
+  while(accelOffline() ==true){//if accel isn't online do time based pushing
+    motorStrength = DEFAULT_MOTOR_STRENGTH;
+    moveMotors();//move Ava
+
+    //this delay is assuming that it takes 2 seconds for ava to return
+    //back to -45 in quadrant 3 after being pushed forward
+    delay(2000);
+  }
+
   //delay(1000);
 
-  getRollAndPitch();
-  Serial.print(rollF);
-  Serial.print("/");
-  Serial.println(pitchF);
+  //Serial.print(rollF);
+  //Serial.print("/");
+  //Serial.println(pitchF);
 
 }
