@@ -19,7 +19,14 @@ https://www.youtube.com/watch?v=gBjHI8RJYGY
 #include <LiquidCrystal_I2C.h>
 #include <math.h> // floor function.
 
-//Define variables
+//Define button variables
+const short int incrementPin = 10;
+const short int decrementPin = 11;
+const short int startPin = 12;
+const short int stopPin = 13;
+
+
+//Define timer variables
 short int secTicks = 0;//used to keep track when a second should occur, clock is 16MHZ, so count up to 16 mill and decremenet timer
 short int minTens = 0;//tens place for minutes
 short int minOnes = 0;//ones place for minutes
@@ -33,8 +40,8 @@ LiquidCrystal_I2C lcd(0x27, 20, 4); //Set LCD address for 16 chars and 2 line di
 void setup(){
     lcd.init();
     lcd.backlight();
-    attachInterrupt(digitalPinToInterrupt(incrementPin),incrementTime, HIGH); 
-    attachInterrupt(digitalPinToInterrupt(decrementPin),countDown, CHANGE); 
+    attachInterrupt(digitalPinToInterrupt(incrementPin), incrementTime, HIGH); 
+    attachInterrupt(digitalPinToInterrupt(decrementPin), countDown, CHANGE); 
     attachInterrupt(digitalPinToInterrupt(stopPin), sendStopSignal, CHANGE);
 }
 
