@@ -351,7 +351,7 @@ void loop() {
   //until the system is restarted.
   //at this point the system will be blind to how ava is currently swinging
   //and its not safe to move her.
-  while(accelWorks != accelOffline){
+  while(accelWorks != accelOffline()){
     //stop program
     //set enable pin high
     digitalWrite(enPin, HIGH);//prevents the motor from moving
