@@ -1,26 +1,26 @@
 //Arduino code for LCD timer display and buttons
 /*
 * Project: Ava's Motorized Swing
-* Author: Yoel Fortaleza (source: `SheCodes` bot)
-* Date:   Friday March 29, 2024
+* Author: Yoel Fortaleza, Jess Turner
+* Date:   Friday March 29, 2024 - Monday April 1, 2024
 * Notes: 
 Edited from original code via the source as of today.
 Source 
 https://www.youtube.com/watch?v=gBjHI8RJYGY
 */
 
-
+#define SECONDS_INCREMENT 30
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
 //Define variables
-int currentTimeValue[4];
+short int secTicks = 0;//used to keep track when a second should occur, clock is 16MHZ, so count up to 16 mill and decremenet timer
+short int minTens = 0;//tens place for minutes
+short int minOnes = 0;//ones place for minutes
+short int secTens = 0;//tens place for seconds
+short int secOnes = 0;//ones place for seconds
 int currentState = 0; //0 - timer is reset to 0, 1 - anything else
-int seconds = 0;
-int secondsTens = 0;
-int minutes = 0;
-int hours = 0;
 
 
 LiquidCrystal_I2C lcd(0x27, 20, 4); //Set LCD address for 16 chars and 2 line display (need to check address of COM port)
@@ -56,9 +56,9 @@ void countDown(){
 
 void showTime(){
     lcd.setCursor(14,3);
-    lcd.print(currentTimeValue[0]);
-    lcd.print(currentTimeValue[1]);
+    lcd.print(minTens);
+    lcd.print(minOnes);
     lcd.print(":");
-    lcd.print(currentTimeValue[2]);
-    lcd.print(currentTimeValue[3]);
+    lcd.print(secTens);
+    lcd.print(secOnes);
 }
