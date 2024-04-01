@@ -2,7 +2,7 @@
 - [ ] Explain current control structure in README.md
     - [] <span style="color:red;">Fill in Build Instructions</span>
 - [ ] Verify/finalize control structure w/ accelerometer
-    - [ ] Test accelerometer using the Java plotting scripts.
+    - [X] Test accelerometer using the Java plotting scripts.
         - visually verify that the accelerometer 
         is providing the data we think it is 
         (i.e. the angle of the swing)
