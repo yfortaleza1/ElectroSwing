@@ -104,6 +104,19 @@ void offsetCalibration (){
   delay(10);
 }
 
+/* 
+Question for @marc why don't we just use the seeed library for this accelerometer.
+#include <ADXL345.h>
+
+const int ADXL345 = 0x53; // The ADXL345 sensor I2C address
+ADXL345 accel;
+
+accel.getAcceleration({X_out, Y_out, Z_out});
+
+*/
+/* function refefence: https://github.com/Seeed-Studio/Accelerometer_ADXL345/blob/6ef99ba9cae65bb5e51ee61d5948b2f219370abd/ADXL345.cpp#L66*/ 
+
+
 void getAccel(){
   //store previous angles, before geting new acceleration
   //prevXAngle = xAngle;
