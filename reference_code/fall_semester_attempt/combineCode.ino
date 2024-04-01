@@ -4,21 +4,29 @@
 
 #include <time.h>
 #include <Stepper.h>
+#include "C:\Users\Marc\Desktop\LIS3DHTR.h"
+#include "C:\Users\Marc\Desktop\LIS3DHTR.cpp"
+
+#include <Wire.h>
+#include "C:\Users\Marc\Desktop\DigitalAccelerometer_ADXL345\DigitalAccelerometer_ADXL345\ADXL345.cpp"
+#include "C:\Users\Marc\Desktop\DigitalAccelerometer_ADXL345\DigitalAccelerometer_ADXL345\ADXL345.h"
+
+
 
 const int sensorPin= 0;//The analog sensor is connected to analog pin 0 of the arduino
 
 //ABCDEFG,dp
 const int numeral[10]= {
-B00010100, //0
-B11010111, //1
-B01001100, //2
-B01000101, //3
-B10000111, //4
-B00100101, //5
-B00100100, //6
-B01010111, //7
-B00000100, //8
-B00000101, //9
+  B00010100, //0
+  B11010111, //1
+  B01001100, //2
+  B01000101, //3
+  B10000111, //4
+  B00100101, //5
+  B00100100, //6
+  B01010111, //7
+  B00000100, //8
+  B00000101, //9
 };
 
 //ASSUMING THE CLOCK IS 8MHZ
@@ -42,18 +50,27 @@ bool motorIdle = false;
 
 //pins for decimal point and each segment
 //dp, G, F, E, D, C, B, A
-const short int segmentPins[]= { 1, 2, 3, 4, 5, 7, 10, 11};///used for 7 segment
+const short int segmentPins[]= { 2, 3, 4, 5, 6, 8, 11, 12};///used for 7 segment
 const short int buttonPins[] = {incrementPin,decrementPin,startPin,stopPin};;//used for buttons
 
 const short int numberofDigits=4;
 
-const short int digitPins[numberofDigits] = { 6,8,9, 12}; //digits 1, 2, 3, 4
+const short int digitPins[numberofDigits] = { 7,9,10,13}; //digits 1, 2, 3, 4
+
+
+
+//ACCEL VARIABLES
+const int sdaPin = A4; //analog input 4 -- ground
+const int sdlPin = A5; //analog input 5 -- voltage
+const int xPin = A3; //x-axis
+const int yPin = A2; //y-axis
+const int zPin = A1; //z-axis
 
 
 //setup button pins
 void buttonSetup(){
   for (int i=0; i < 4; i++){
-    pinMode(buttonPins[i], INPUT); //set segment and DP pins to output
+    pinMode(buttonPins[i], INPUT_PULLUP); //set segment and DP pins to output
   }
 
 }
@@ -162,9 +179,8 @@ void segmentPinSetup(){
 //call this function
 //it'll basically until the operator lets go off said button
 void debounceButton(short int pinNumber){
-    // jess proposed correction 12/1: don't we have HIGH as pressed down, 
-    // so to check its still pressed, should compare to HIGH
-  while(digitalRead(pinNumber) == HIGH){
+
+  while(digitalRead(pinNumber) != LOW){
     //DO NOTHING BUT DISPLAY TIME
     displayTime();//display current selected time
     //stay in this while loop until the pin in question goes high again
@@ -173,53 +189,7 @@ void debounceButton(short int pinNumber){
 }
 
 
-  while(digitalRead(startPin) != HIGH){//be in this "SET TIME" MODE while start pin is low
-
-
-    //IF THE THE STOP BUTTON IS PRESSED
-    if(digitalRead(stopPin) != LOW){//clear time
-      //debounceButton(stopPin);//wait until stopPin is let go
-      clearTimer();//clear time
-    }
-
-    //IF THE INCREMENT BUTTON IS PRESSED
-    else if(digitalRead(incrementPin) != LOW){
-
-      debounceButton(incrementPin);//wait until incrementPin is let go
-
-      if(minOnes < 9 && minOnes >= 0){
-        minOnes +=1;//increment minsOnes place
-      }
-
-      else if(minOnes == 9 && minTens != 5){//ONES PLACE OVERFLOW CONDITION
-        minOnes = 0;//set ones place of mines to 0
-        minTens += 1;//incrmeent tens place of minutes
-      }
-
-    }
-
-
-    //IF THE DECREMENT BUTTON IS PRESSED
-    else if(digitalRead(decrementPin) != LOW){
-
-      debounceButton(decrementPin);//wait until incrementPin is let go
-
-      if(minOnes > 0 && minOnes <= 9){
-        minOnes -=1;//decrement minsOnes place
-      }
-
-      else if(minOnes == 0 && minTens != 0){//DECREMENTING TENS PLACE BY 1
-        minOnes = 9;//set ones place of mines to 0
-        minTens -= 1;//incrmeent tens place of minutes
-      }
-
-    }
-
-        displayTime();//display current selected time
-  }
-
-  debounceButton(startPin);//wait until start pin is let go
-
+  
 //USED FOR CLEARING SWING TIME
 void clearTimer(){
   secOnes = 0;
@@ -240,18 +210,13 @@ void displayTime(){
 //Function decrements timer by 1 SECOND
 //THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
 void decrementTimer(){
-      // Proposed change 12/2 - Jess
-      // Button pressed down is HIGH, so that is what we should detect, right?
-      if(digitalRead(stopPin) == HIGH){//IF STOP BUTTON PRESSED, CLEAR TIMER AND END SWING
-        debounceButton(stopPin);
-        // tell the motor to stop!
-        motorIdle = true; // should trigger motor ISR, right?
+
+      if(digitalRead(stopPin) != LOW){//IF STOP BUTTON PRESSED, CLEAR TIMER AND END SWING
+        //debounceButton(stopPin);
         clearTimer();//clear timer
       }
 
-      // use our motor tracking variable to see if the timer still needs to be counting down
-      // rather than plain else since 
-      else if (motorIdle == false) {//IF STOP BUTTON NOT PRESSED, DECREMENT NORMALLY
+      else{//IF STOP BUTTON NOT PRESSED, DECREMENT NORMALLY
 
         if(secOnes != 0){
           secOnes = secOnes - 1;//decrement secOnes, a second should have passed
@@ -417,17 +382,208 @@ void motorRotatorLoop() {
 
 
 
+
+
+
+void getSwingTime(){
+
+  while(digitalRead(startPin) != HIGH){//be in this "SET TIME" MODE while start pin is low
+
+
+    //IF THE THE STOP BUTTON IS PRESSED
+    if(digitalRead(stopPin) != LOW){//clear time
+      clearTimer();//clear time
+      debounceButton(stopPin);//wait until stopPin is let go
+    }
+
+    //IF THE INCREMENT BUTTON IS PRESSED
+    if(digitalRead(incrementPin) != LOW){
+
+      debounceButton(incrementPin);//wait until incrementPin is let go
+
+      if(minOnes < 9 && minOnes >= 0){
+        minOnes +=1;//increment minsOnes place
+      }
+
+      else if(minOnes == 9 && minTens != 5){//ONES PLACE OVERFLOW CONDITION
+        minOnes = 0;//set ones place of mines to 0
+        minTens += 1;//incrmeent tens place of minutes
+      }
+
+    }
+
+
+    //IF THE DECREMENT BUTTON IS PRESSED
+    if(digitalRead(decrementPin) != LOW){
+
+      debounceButton(decrementPin);//wait until incrementPin is let go
+
+      if(minOnes > 0 && minOnes <= 9){
+        minOnes -=1;//decrement minsOnes place
+      }
+
+      else if(minOnes == 0 && minTens != 0){//DECREMENTING TENS PLACE BY 1
+        minOnes = 9;//set ones place of mines to 0
+        minTens -= 1;//incrmeent tens place of minutes
+      }
+
+    }
+
+        displayTime();//display current selected time
+  }
+
+  debounceButton(startPin);//wait until start pin is let go
+
+}
+
+
+
+//ACCELEROMETER STUFF
+
+ADXL345 adxl; //variable adxl is an instance of the ADXL345 library
+
+
+//SETS UP PINS FOR ACCELEMOETER
+void accelSetup(){
+
+
+  Serial.begin(9600);
+  adxl.powerOn();
+
+  //set activity/ inactivity thresholds (0-255)
+  adxl.setActivityThreshold(75); //62.5mg per increment
+  adxl.setInactivityThreshold(75); //62.5mg per increment
+  adxl.setTimeInactivity(10); // how many seconds of no activity is inactive?
+ 
+  //look of activity movement on this axes - 1 == on; 0 == off 
+  adxl.setActivityX(1);
+  adxl.setActivityY(1);
+  adxl.setActivityZ(1);
+ 
+  //look of inactivity movement on this axes - 1 == on; 0 == off
+  adxl.setInactivityX(1);
+  adxl.setInactivityY(1);
+  adxl.setInactivityZ(1);
+ 
+  //look of tap movement on this axes - 1 == on; 0 == off
+  adxl.setTapDetectionOnX(0);
+  adxl.setTapDetectionOnY(0);
+  adxl.setTapDetectionOnZ(1);
+ 
+  //set values for what is a tap, and what is a double tap (0-255)
+  adxl.setTapThreshold(50); //62.5mg per increment
+  adxl.setTapDuration(15); //625us per increment
+  adxl.setDoubleTapLatency(80); //1.25ms per increment
+  adxl.setDoubleTapWindow(200); //1.25ms per increment
+ 
+  //set values for what is considered freefall (0-255)
+  adxl.setFreeFallThreshold(7); //(5 - 9) recommended - 62.5mg per increment
+  adxl.setFreeFallDuration(45); //(20 - 70) recommended - 5ms per increment
+ 
+  //setting all interrupts to take place on int pin 1
+  //I had issues with int pin 2, was unable to reset it
+  adxl.setInterruptMapping( ADXL345_INT_SINGLE_TAP_BIT,   ADXL345_INT1_PIN );
+  adxl.setInterruptMapping( ADXL345_INT_DOUBLE_TAP_BIT,   ADXL345_INT1_PIN );
+  adxl.setInterruptMapping( ADXL345_INT_FREE_FALL_BIT,    ADXL345_INT1_PIN );
+  adxl.setInterruptMapping( ADXL345_INT_ACTIVITY_BIT,     ADXL345_INT1_PIN );
+  adxl.setInterruptMapping( ADXL345_INT_INACTIVITY_BIT,   ADXL345_INT1_PIN );
+ 
+  //register interrupt actions - 1 == on; 0 == off  
+  adxl.setInterrupt( ADXL345_INT_SINGLE_TAP_BIT, 1);
+  adxl.setInterrupt( ADXL345_INT_DOUBLE_TAP_BIT, 1);
+  adxl.setInterrupt( ADXL345_INT_FREE_FALL_BIT,  1);
+  adxl.setInterrupt( ADXL345_INT_ACTIVITY_BIT,   1);
+  adxl.setInterrupt( ADXL345_INT_INACTIVITY_BIT, 1);
+
+}
+
+
+/*
+* Displays accelerometer reading at every given time interval 
+*/
+void getAccel(){
+  
+	//Boring accelerometer stuff   
+	int x,y,z;  
+	adxl.readXYZ(&x, &y, &z); //read the accelerometer values and store them in variables  x,y,z
+	// Output x,y,z values 
+	Serial.print("values of X , Y , Z: ");
+	Serial.print(x);
+	Serial.print(" , ");
+	Serial.print(y);
+	Serial.print(" , ");
+	Serial.println(z);
+	
+	double xyz[3];
+	double ax,ay,az;
+	adxl.getAcceleration(xyz);
+	ax = xyz[0];
+	ay = xyz[1];
+	az = xyz[2];
+	Serial.print("X=");
+	Serial.print(ax);
+    Serial.print(" g");
+	Serial.print("Y=");
+	Serial.print(ay);
+    Serial.print(" g");
+	Serial.print("Z=");
+	Serial.print(az);
+    Serial.println(" g");
+	Serial.println("**********************");
+	//delay(500);
+/*
+
+  //Fun Stuff!    
+  //read interrupts source and look for triggerd actions
+  
+  //getInterruptSource clears all triggered actions after returning value
+  //so do not call again until you need to recheck for triggered actions
+   byte interrupts = adxl.getInterruptSource();
+  
+  // freefall
+  if(adxl.triggered(interrupts, ADXL345_FREE_FALL)){
+    Serial.println("freefall");
+    //add code here to do when freefall is sensed
+  } 
+  
+  //inactivity
+  if(adxl.triggered(interrupts, ADXL345_INACTIVITY)){
+    Serial.println("inactivity");
+     //add code here to do when inactivity is sensed
+  }
+  
+  //activity
+  if(adxl.triggered(interrupts, ADXL345_ACTIVITY)){
+    Serial.println("activity"); 
+     //add code here to do when activity is sensed
+  }
+  
+  //double tap
+  if(adxl.triggered(interrupts, ADXL345_DOUBLE_TAP)){
+    Serial.println("double tap");
+     //add code here to do when a 2X tap is sensed
+  }
+  
+  //tap
+  if(adxl.triggered(interrupts, ADXL345_SINGLE_TAP)){
+    Serial.println("tap");
+     //add code here to do when a tap is sensed
+  } */
+}
+
+
+
 void setup()
 {
 
  
   //USED FOR TESTING
-  /*
+  
   minTens = 1;//tens place for minutes
   minOnes = 3;//ones place for minutes
   secTens = 1;//tens place for seconds
   secOnes = 2;//ones place for seconds
-  */
+  
 
   
   motorIdle = true;
@@ -435,8 +591,11 @@ void setup()
   segmentPinSetup();//setup 7 segment pins
   getSwingTime();//get swing time from opereator via physical timer interface
   clockInterruptSetup();//setup clock interrupts
+
+
   SevenSegTimerSetup();
   motorRotatorSetup();//setup motors
+  accelSetup();
   //motorIdle = false;
 
 }
@@ -448,18 +607,17 @@ void setup()
 //MOTOR WILL KEEP OSCILLATING SO LONG AS THERE'S TIME REMAINING
 //ONCE TIME RUNS OUT THE SEVEN SEG SHOULD DISPLAY 00:00 FOREVER
 void loop(){
-  displayTime();
+  //displayTime();
+  getAccel();
   //motorRotatorLoop();//move motors
 
-  // if(secOnes != 0 || secTens != 0 && minOnes != 0 || minTens != 0){
-  // correction 12/1, should be all ORs so that anything being nonzero means time left.
-  if(secOnes != 0 || secTens != 0 || minOnes != 0 || minTens != 0){
-      motorIdle = false; // keep moving     
+  /*if(secOnes != 0 || secTens != 0 && minOnes != 0 || minTens != 0){
+      motorIdle = false;      
   }
 
   else{
-    motorIdle = true; // stop moving
-  }
+    motorIdle == true;
+  }*/
 }
 
 
@@ -483,6 +641,7 @@ ISR(TIMER0_COMPA_vect) {
   cli();//disable interrupts
   if(divider==0){
     displayTime();
+    //getAccel();
   }
   divider++;
   divider%=100;
@@ -502,8 +661,7 @@ ISR(TIMER2_COMPA_vect) {
   }
 
   else{
-    // Jess suggestion 12/1, if the motor is idle, shouldn't we say to the stepper, do NOT step (LOW)
-    digitalWrite(stepPin, LOW);
+    digitalWrite(stepPin, HIGH);
   }
   dividerMotor++;
   dividerMotor%=80;//

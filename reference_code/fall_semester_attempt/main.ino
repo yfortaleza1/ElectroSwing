@@ -1,11 +1,14 @@
-
+//THIS IS USING ATMEGA2560 
+//ONLY WORKS FOR THE MEGA REV3, THE ONE WE ARE PLANNING ON USING FOR THE FINAL PRODUCT
+//THIS CODE WON'T WORK ON THE UNO BECCAUSE OF DIFFERENT REGISTERS AND CLOCK SPEED (NEED TO CONFIRM)
 
 #include <time.h>
+#include <Stepper.h>
 
-const int sensorPin= 0;//The analog sensor is connected to analog pin 0 of the arduino
+const int sensorPin = 0;//The analog sensor is connected to analog pin 0 of the arduino
 
 //ABCDEFG,dp
-const int numeral[10]= {
+const int numeral[10] = {
 B00010100, //0
 B11010111, //1
 B01001100, //2
@@ -33,6 +36,8 @@ const short int startPin = 24;//used for starting swing time
 const short int stopPin = 25;//used for clearing and stoping swing time
 
 
+bool motorIdle = false;
+
 
 
 //pins for decimal point and each segment
@@ -56,6 +61,8 @@ void buttonSetup(){
 
 
 //FUCTION SETUPS CLOCK INTERRUPTS
+//16 BIT TIMER
+//USES TIMER1
 void clockInterruptSetup(){
 
   cli();
@@ -67,7 +74,7 @@ void clockInterruptSetup(){
   // 1 Hz (16000000/((15624+1)*1024))
   //HAVING OCR1A EQUAL 15624 MAKES THE INTERRUPT TRIGGER ONCE EVERY SECOND
   //IF YOU WANT TO SPEED DECREMENTING MAKE OCR1A SMALLER THAN 15624
-  OCR1A = 15624/10;
+  OCR1A = 15624;
   // CTC
   TCCR1B |= (1 << WGM12);
   // Prescaler 1024
@@ -77,6 +84,62 @@ void clockInterruptSetup(){
   sei();
 
 }
+
+
+volatile int divider=0;
+volatile int dividerMotor=0;
+
+
+//USED THIS FOR TRIGGERING SEGMENT DISPLAY
+//THIS IS USING TIMER0
+//8 bit timer
+void SevenSegTimerSetup() {
+  cli();
+  // Clear registers
+  TCCR0A = 0;
+  TCCR0B = 0;
+  TCNT0 = 0;
+
+  // 100.16025641025641 Hz (16000000/((155+1)*1024))
+  //period is 0.01 seconds
+  //OCR0A = 155;
+
+  // 744.047 Hz (16000000/((20+1)*1024))
+  //Period is 0.001344 seconds
+  OCR0A = 20;
+  // CTC
+  TCCR0A |= (1 << WGM01);
+  // Prescaler 1024
+  TCCR0B |= (1 << CS02) | (1 << CS00);
+  // Output Compare Match A Interrupt Enable
+  TIMSK0 |= (1 << OCIE0A);
+  sei();
+}
+
+
+//USED THIS FOR TRIGGERING SEGMENT DISPLAY
+//THIS IS USING TIMER2
+//8 bit timer
+void MotorClockSetup() {
+  cli();
+  // Clear registers
+  TCCR2A = 0;
+  TCCR2B = 0;
+  TCNT2 = 0;
+
+  // 100.16025641025641 Hz (16000000/((155+1)*1024))
+  //period is 0.0092 seconds
+  //HAVE A COUNTER THAT IS TRIGGERED BY THIS INTERRUPT
+  OCR2A = 154;
+  // CTC
+  TCCR2A |= (1 << WGM01);
+  // Prescaler 1024
+  TCCR2B |= (1 << CS02) | (1 << CS00);
+  // Output Compare Match A Interrupt Enable
+  TIMSK2 |= (1 << OCIE0A);
+  sei();
+}
+
 
 //FUNCTION STEPS UP I/O PINS
 void segmentPinSetup(){
@@ -272,6 +335,82 @@ void showDigit (int number, int digit){
   
 }
 
+// defines pins numbers
+const short int stepPin = 26;
+const short int dirPin = 27;
+const short int enPin = 28;
+
+// INCREASE VALUE BY 50 TO GET A QUATER CIRCLE OF MOTION AT MOTOR STRENGTH 965
+const int SPIN_TIME = 50; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
+
+// FOR MOTOR STRENGTH 350 MINIMUM
+// 940 IS CONSISTENT WITH STARTING AND STOPPING IN THE SAME PLACE, WHEN ROTATING LEFT AND BACK TO RIGHT
+// DONT GO ABOVE 965 FOR MOTOR STRENGTH
+const int MOTOR_STRENGTH = 800; // THIS IN A DELAY VALUE IN MICROSECONDS, LONGER THE DEPLAY SLOWER THE MOTOR WILL BE
+
+void motorRotatorSetup() {
+    // Sets the two pins as Outputs
+    pinMode(stepPin, OUTPUT);
+    pinMode(dirPin, OUTPUT);
+
+    pinMode(enPin, OUTPUT);
+    digitalWrite(enPin, LOW);
+
+    pinMode(stepPin, OUTPUT);
+
+
+}
+
+
+
+void motorRotatorLoop() {
+
+    //cli();
+    digitalWrite(dirPin, HIGH); // Enables the motor to move in a particular direction
+    for (int x = 0; x < SPIN_TIME; x++)
+    { // SPIN_TIME VALUE DICTATES HOW LONG MOTOR WILL SPIN
+        //cli();
+        digitalWrite(stepPin, HIGH);
+        delayMicroseconds(MOTOR_STRENGTH);
+        digitalWrite(stepPin, LOW);
+        delayMicroseconds(MOTOR_STRENGTH);
+        //displayTime();
+        //sei();
+    }
+
+    // THIS DELAY IS WEIRD, BUT NEED TO BE INCLUDED OR ELSE THE CODE WONT WORK
+    // REASON UNCLEAR
+    delay(10);                 // THIS NEEDS TO BE HERE
+    digitalWrite(dirPin, LOW); // Changes the rotations direction
+
+    // THERE HAS TO BE AT MINIMUM A 2 SECOND DELAY, TO ENSURE THE MOTOR DOESNT MISFIRE IN THE WRONG DIRECTION
+    // THERE IS SOME AMOUNT OF DELAY WHEN THE SIGNAL GOES THROUGH THE MICROSTEPPER
+    // NEED TO GET GIVE SIGNALS MORE TIME TO PASS THROUGH BEFORE NEXT INSTRUCTION
+    delay(2000); // Two Second Delay
+    
+
+    /*for (int x = 0; x < SPIN_TIME; x++)
+    { // SPIN_TIME VALUE DICTATES HOW LONG MOTOR WILL SPIN
+        digitalWrite(stepPin, HIGH);
+        delayMicroseconds(MOTOR_STRENGTH);
+        digitalWrite(stepPin, LOW);
+        delayMicroseconds(MOTOR_STRENGTH);
+    }
+    // THIS DELAY IS WEIRD, BUT NEED TO BE INCLUDED OR ELSE THE CODE WONT WORK
+    // REASON UNCLEAR
+    delay(10);
+
+    // BELOW IS CODE FOR MOVEMENT IN THE OPPOSITE DIRECTION
+    digitalWrite(dirPin, HIGH); // Enables the motor to move in a particular direction
+
+    // THERE HAS TO BE AT MINIMUM A 2 SECOND DELAY, TO ENSURE THE MOTOR DOESNT MISFIRE IN THE WRONG DIRECTION
+    // THERE IS SOME AMOUNT OF DELAY WHEN THE SIGNAL GOES THROUGH THE MICROSTEPPER
+    // NEED TO GET GIVE SIGNALS MORE TIME TO PASS THROUGH BEFORE NEXT INSTRUCTION
+    delay(2000);*/
+
+    //sei();
+}
+
 
 
 void setup()
@@ -287,18 +426,79 @@ void setup()
   */
 
   
-
+  motorIdle = true;
   buttonSetup();//.setup button pins
   segmentPinSetup();//setup 7 segment pins
   getSwingTime();//get swing time from opereator via physical timer interface
   clockInterruptSetup();//setup clock interrupts
+  SevenSegTimerSetup();
+  motorRotatorSetup();//setup motors
+  //motorIdle = false;
+
 }
 
+
+
+
+
+//MOTOR WILL KEEP OSCILLATING SO LONG AS THERE'S TIME REMAINING
+//ONCE TIME RUNS OUT THE SEVEN SEG SHOULD DISPLAY 00:00 FOREVER
 void loop(){
   displayTime();
+  //motorRotatorLoop();//move motors
+
+  if(secOnes != 0 || secTens != 0 && minOnes != 0 || minTens != 0){
+      motorIdle = false;      
+  }
+
+  else{
+    motorIdle == true;
+  }
 }
 
-//With the settings above, this IRS will trigger each 500ms.
+
+
+
+
+//With the settings above, this IRS will trigger each second.
+//USED FOR DECREMENTING THE TIMER EVERY SECOND
 ISR(TIMER1_COMPA_vect){
+    cli();
     decrementTimer();//DECREMENT TIMER BY A SECOND
+    sei();
+    //displayTime();
+
+}
+
+
+//tTHIS HANDLES THE TRIGGERING THE SEVEN SEGMENT DISPLAY
+//USED TIMER 0
+ISR(TIMER0_COMPA_vect) {
+  cli();//disable interrupts
+  if(divider==0){
+    displayTime();
+  }
+  divider++;
+  divider%=100;
+  sei();//reenable all interrupts
+}
+
+
+
+//tTHIS HANDLES THE MOTOR being rotating
+//USED TIMER 2
+ISR(TIMER2_COMPA_vect) {
+
+  
+  cli();//disable interrupts
+  if(motorIdle == false){//MOVE MOTOR
+    motorRotatorLoop();
+  }
+
+  else{
+    digitalWrite(stepPin, HIGH);
+  }
+  dividerMotor++;
+  dividerMotor%=80;//
+  sei();//reenable all interrupts
 }
