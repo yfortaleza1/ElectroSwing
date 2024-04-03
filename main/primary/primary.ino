@@ -41,10 +41,6 @@ short int minOnes = 0;//ones place for minutes
 short int secTens = 0;//tens place for seconds
 short int secOnes = 0;//ones place for seconds
 
-//BUTTON PINs
-const short int incrementPin = 22;//used for incrementing time
-const short int decrementPin = 23;//used for decremnting time
-
 
 //pins for decimal point and each segment
 //dp, G, F, E, D, C, B, A
@@ -169,6 +165,7 @@ void showTime(){
     Serial.print(":");
     Serial.print(secTens);
     Serial.print(secOnes);
+    Serial.print("\n");
 
 
     lcd.setCursor(14,3);
@@ -181,8 +178,6 @@ void showTime(){
 
 void setup()
 {
-
- 
   //USED FOR TESTING
   
   minTens = 1;//tens place for minutes
@@ -195,9 +190,9 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(incrementPin),incrementTimer, CHANGE); 
   attachInterrupt(digitalPinToInterrupt(decrementPin),decrementTimer, CHANGE); 
 
-  SevenSegTimerSetup(); // <- I believe this sets up the registers for timing.
+  //SevenSegTimerSetup(); // <- I believe this sets up the registers for timing.
   //sei();
-   Serial.begin(9600);
+  Serial.begin(9600);
 
 }
 
@@ -205,5 +200,5 @@ void setup()
 //MOTOR WILL KEEP OSCILLATING SO LONG AS THERE'S TIME REMAINING
 //ONCE TIME RUNS OUT THE SEVEN SEG SHOULD DISPLAY 00:00 FOREVER
 void loop(){
-  Serial.println("HEY");
+  showTime();
 }
