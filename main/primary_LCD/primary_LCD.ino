@@ -43,8 +43,8 @@ void setup(){
     lcd.init();
     lcd.backlight();
     attachInterrupt(digitalPinToInterrupt(incrementPin), incrementTime, HIGH); 
-    //attachInterrupt(digitalPinToInterrupt(decrementPin), countDown, CHANGE); 
-    //attachInterrupt(digitalPinToInterrupt(stopPin), sendStopSignal, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(decrementPin), countDown, CHANGE); 
+    attachInterrupt(digitalPinToInterrupt(stopPin), sendStopSignal, CHANGE);
 }
 
 void loop(){
