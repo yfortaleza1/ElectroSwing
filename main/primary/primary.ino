@@ -50,6 +50,7 @@ const short int buttonPins[] = {incrementPin,decrementPin,startPin,stopPin};;//u
 const short int numberofDigits=4;
 
 //const short int digitPins[numberofDigits] = { 7,9,10,13}; //digits 1, 2, 3, 4
+//const short int digitPins[numberofDigits] = { 7,9,10,13}; //digits 1, 2, 3, 4
 
 
 
@@ -107,6 +108,7 @@ void clearTimer(){
 //THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
 void decrementTimer(){
       Serial.println("AH YOU PUSHED DECREMENT :0 --------- ");
+      Serial.println("AH YOU PUSHED DECREMENT :0 --------- ");
       cli();
       if(digitalRead(stopPin) != LOW){//IF STOP BUTTON PRESSED, CLEAR TIMER AND END SWING
         //debounceButton(stopPin);
@@ -147,6 +149,7 @@ void decrementTimer(){
 
 void incrementTimer(){
       Serial.println("AH YOU PUSHED INCREMENT :0 +++++++++++++ ");
+      Serial.println("AH YOU PUSHED INCREMENT :0 +++++++++++++ ");
       cli();
       if(minOnes < 9 && minOnes >= 0){
         minOnes +=1;//increment minsOnes place
@@ -169,6 +172,7 @@ void showTime(){
     Serial.print(secOnes);
     Serial.print("\n");
     
+    
 
 
     lcd.setCursor(14,3);
@@ -183,6 +187,7 @@ void setup()
 {
   //USED FOR TESTING
   buttonSetup();
+  buttonSetup();
   minTens = 1;//tens place for minutes
   minOnes = 3;//ones place for minutes
   secTens = 1;//tens place for seconds
@@ -190,10 +195,12 @@ void setup()
   lcd.init();
   lcd.backlight();
   cli();
+  cli();
   attachInterrupt(digitalPinToInterrupt(incrementPin),incrementTimer, CHANGE); 
   attachInterrupt(digitalPinToInterrupt(decrementPin),decrementTimer, CHANGE); 
 
   //SevenSegTimerSetup(); // <- I believe this sets up the registers for timing.
+  sei();
   sei();
   Serial.begin(9600);
 
@@ -212,6 +219,21 @@ void loop(){
     decrementTimer();
     delay(200); // debounce delay
   }
+  if (digitalRead(incrementPin) == HIGH) {
+    incrementTimer();
+    delay(200); // debounce delay
+  }
+
+  if (digitalRead(decrementPin) == HIGH) {
+    decrementTimer();
+    delay(200); // debounce delay
+  }
   showTime();
+<<<<<<< Updated upstream
+}
+=======
+  // reset the time by 
   // reset the time by 
 }
+>>>>>>> Stashed changes
+
