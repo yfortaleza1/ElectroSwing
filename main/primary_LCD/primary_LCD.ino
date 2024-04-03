@@ -34,6 +34,8 @@ short int secTens = 0;//tens place for seconds
 short int secOnes = 0;//ones place for seconds
 int currentState = 0; //0 - timer is reset to 0, 1 - anything else
 
+short int motorStatus;
+
 
 LiquidCrystal_I2C lcd(0x27, 20, 4); //Set LCD address for 16 chars and 2 line display (need to check address of COM port)
 
@@ -41,8 +43,8 @@ void setup(){
     lcd.init();
     lcd.backlight();
     attachInterrupt(digitalPinToInterrupt(incrementPin), incrementTime, HIGH); 
-    attachInterrupt(digitalPinToInterrupt(decrementPin), countDown, CHANGE); 
-    attachInterrupt(digitalPinToInterrupt(stopPin), sendStopSignal, CHANGE);
+    //attachInterrupt(digitalPinToInterrupt(decrementPin), countDown, CHANGE); 
+    //attachInterrupt(digitalPinToInterrupt(stopPin), sendStopSignal, CHANGE);
 }
 
 void loop(){
@@ -55,13 +57,15 @@ void incrementTime(){
       if(minOnes < 9 && minOnes >= 0){
         minOnes +=1;//increment minsOnes place
       }
+}
+
 int calculateTotalSeconds() {
     // time in seconds!
 
     return (secOnes + 10 * secTens + // add up the seconds
             // add up the minutes
             SECONDS_PER_MINUTE * minOnes + 
-            (SECONDS_PER_MINUTE*10) * secTens)
+            (SECONDS_PER_MINUTE*10) * secTens);
 }
 
 void updateDigitsFromTotalSeconds(int totalSeconds) {
@@ -69,6 +73,7 @@ void updateDigitsFromTotalSeconds(int totalSeconds) {
     Change our variables which correspond to each digit we display for the time
     based on the given number of seconds.
     */
+   cli();
     int totalMinutes = floor(totalSeconds / SECONDS_PER_MINUTE);
     int leftoverSeconds = totalSeconds % SECONDS_PER_MINUTE;
 
@@ -79,10 +84,10 @@ void updateDigitsFromTotalSeconds(int totalSeconds) {
     secTens = floor(leftoverSeconds / MAX_TENS_DIGIT + 1) ;
     secOnes = leftoverSeconds % (MAX_ONES_DIGIT + 1);
 
-      else if(minOnes == 9 && minTens != 5){//ONES PLACE OVERFLOW CONDITION
-        minOnes = 0;//set ones place of mines to 0
-        minTens += 1;//incrmeent tens place of minutes
-      }
+    if(minOnes == 9 && minTens != 5){//ONES PLACE OVERFLOW CONDITION
+      minOnes = 0;//set ones place of mines to 0
+      minTens += 1;//incrmeent tens place of minutes
+    }
 
       sei();
 }
@@ -123,6 +128,7 @@ void countDown(){
       }
 
       sei();
+}
 // Author: Jess
 // 
 void incrementTimer(){
