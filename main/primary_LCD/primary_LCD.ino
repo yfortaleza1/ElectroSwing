@@ -9,12 +9,7 @@ Source
 https://www.youtube.com/watch?v=gBjHI8RJYGY
 */
 
-#define SECONDS_INCREMENT 30
-#define SECONDS_PER_MINUTE 60
-
-#define MAX_TENS_DIGIT 5
-#define MAX_ONES_DIGIT 9
-
+#include "timer_variables.h"
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <math.h> // floor function.
@@ -27,11 +22,7 @@ const short int stopPin = 13;
 
 
 //Define timer variables
-short int secTicks = 0;//used to keep track when a second should occur, clock is 16MHZ, so count up to 16 mill and decremenet timer
-short int minTens = 0;//tens place for minutes
-short int minOnes = 0;//ones place for minutes
-short int secTens = 0;//tens place for seconds
-short int secOnes = 0;//ones place for seconds
+
 int currentState = 0; //0 - timer is reset to 0, 1 - anything else
 
 short int motorStatus;
