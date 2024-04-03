@@ -19,6 +19,13 @@ https://www.youtube.com/watch?v=gBjHI8RJYGY
 #include <LiquidCrystal_I2C.h>
 #include <math.h> // floor function.
 
+
+short int secTicks = 0;//used to keep track when a second should occur, clock is 16MHZ, so count up to 16 mill and decremenet timer
+short int minTens = 0;//tens place for minutes
+short int minOnes = 0;//ones place for minutes
+short int secTens = 0;//tens place for seconds
+short int secOnes = 0;//ones place for seconds
+
 //Define button variables
 const short int incrementPin = 10;
 const short int decrementPin = 11;
@@ -48,7 +55,7 @@ void setup(){
 }
 
 void loop(){
-    
+    showTime();
 }
 
 
@@ -185,6 +192,14 @@ void decrementTimer(){
 }
 
 void showTime(){
+    
+    Serial.print(minTens);
+    Serial.print(minOnes);
+    Serial.print(":");
+    Serial.print(secTens);
+    Serial.print(secOnes);
+
+
     lcd.setCursor(14,3);
     lcd.print(minTens);
     lcd.print(minOnes);
