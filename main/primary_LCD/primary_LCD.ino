@@ -142,47 +142,6 @@ void incrementTimer(){
     sei();
 }
 
-// Author: Marc (see ../primary/primary.ino)
-//this function is responsible for time decrementing logic
-//Function decrements timer by 1 SECOND
-//THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
-void decrementTimer(){
-    cli();
-    if(digitalRead(stopPin) != LOW){//IF STOP BUTTON PRESSED, CLEAR TIMER AND END SWING
-        //debounceButton(stopPin);
-        clearTimer();//clear timer
-    }
-
-    else{//IF STOP BUTTON NOT PRESSED, DECREMENT NORMALLY
-
-    if(secOnes != 0){
-        secOnes = secOnes - 1;//decrement secOnes, a second should have passed
-    }
-
-    else if(secOnes == 0 && secTens != 0){
-
-        secOnes = 9;
-        secTens -=1;//decrement sec tens
-    }
-
-    else if(secOnes == 0 && secTens == 0 && minOnes != 0){
-
-        minOnes -=1;
-        secTens = 5;
-        secOnes = 9;
-    }
-
-    else if(secOnes == 0 && secTens == 0 && minOnes == 0 && minTens != 0){
-
-        minTens -=1;
-        minOnes = 9;
-        secTens = 5;
-        secOnes = 9;
-    }
-    }
-
-    sei();
-}
 
 void showTime(){
     lcd.setCursor(14,3);
