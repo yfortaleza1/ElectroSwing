@@ -77,26 +77,6 @@ void SevenSegTimerSetup() {
 
 
 
-
-
-//FUNCTION STEPS UP I/O PINS
-void segmentPinSetup(){
-  for (int i=0; i < 8; i++){
-    pinMode(segmentPins[i], OUTPUT); //set segment and DP pins to output
-  }
-  //sets the digit pins as outputs
-  for (int i=0; i < numberofDigits; i++){
-    pinMode(digitPins[i], OUTPUT);
-  }
-
-
-}
-
-
-
-
-
-  
 //USED FOR CLEARING SWING TIME
 void clearTimer(){
   secOnes = 0;
@@ -168,7 +148,22 @@ void incrementTimer(){
       sei();
 }
 
+void showTime(){
+    
+    Serial.print(minTens);
+    Serial.print(minOnes);
+    Serial.print(":");
+    Serial.print(secTens);
+    Serial.print(secOnes);
 
+
+    lcd.setCursor(14,3);
+    lcd.print(minTens);
+    lcd.print(minOnes);
+    lcd.print(":");
+    lcd.print(secTens);
+    lcd.print(secOnes);
+}
 
 void setup()
 {
@@ -182,14 +177,11 @@ void setup()
   secOnes = 2;//ones place for seconds
   
   //cli();
-
-
-
   attachInterrupt(digitalPinToInterrupt(incrementPin),incrementTimer, CHANGE); 
   attachInterrupt(digitalPinToInterrupt(decrementPin),decrementTimer, CHANGE); 
 
   //SevenSegTimerSetup();
-   //sei();
+  //sei();
    Serial.begin(9600);
 
 }
