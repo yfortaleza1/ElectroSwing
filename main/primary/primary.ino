@@ -1,8 +1,8 @@
 /*
 Name: primary.ino
 Authors: Marc Conn
-(soon to be contributers - Yoel Fortaleza, Jess Turner)
-Date: 3/27 (planning on changing this current code to be LCD display rather than seven segment)
+(contributers - Yoel Fortaleza, Jess Turner)
+Date: 3/27-4/3 (planning on changing this current code to be LCD display rather than seven segment)
 Description: 
 This file will control the timing for the swing system.
 Todo: use master pin to signal to secondary that it can do its logic. 
@@ -12,6 +12,24 @@ Todo: use master pin to signal to secondary that it can do its logic.
 //THIS IS USING ATMEGA2560 
 //ONLY WORKS FOR THE MEGA REV3, THE ONE WE ARE PLANNING ON USING FOR THE FINAL PRODUCT
 //THIS CODE WON'T WORK ON THE UNO BECCAUSE OF DIFFERENT REGISTERS AND CLOCK SPEED (NEED TO CONFIRM)
+#include <LiquidCrystal_I2C.h>
+#include <math.h> // floor function.
+
+//Define button variables
+const short int incrementPin = 10;
+const short int decrementPin = 11;
+const short int startPin = 12;
+const short int stopPin = 13;
+
+
+//Define timer variables
+
+int currentState = 0; //0 - timer is reset to 0, 1 - anything else
+
+short int motorStatus;
+
+
+LiquidCrystal_I2C lcd(0x27, 20, 4); //Set LCD address for 16 chars and 2 line display (need to check address of COM port)
 
 const int sensorPin= 0;//The analog sensor is connected to analog pin 0 of the arduino
 
@@ -129,10 +147,6 @@ void decrementTimer(){
 }
 
 
-
-
-
-
 void incrementTimer(){
 
       cli();
@@ -175,36 +189,21 @@ void setup()
   minOnes = 3;//ones place for minutes
   secTens = 1;//tens place for seconds
   secOnes = 2;//ones place for seconds
-  
+  lcd.init();
+  lcd.backlight();
   //cli();
   attachInterrupt(digitalPinToInterrupt(incrementPin),incrementTimer, CHANGE); 
   attachInterrupt(digitalPinToInterrupt(decrementPin),decrementTimer, CHANGE); 
 
-  //SevenSegTimerSetup();
+  SevenSegTimerSetup(); // <- I believe this sets up the registers for timing.
   //sei();
    Serial.begin(9600);
 
 }
 
 
-
-
-
 //MOTOR WILL KEEP OSCILLATING SO LONG AS THERE'S TIME REMAINING
 //ONCE TIME RUNS OUT THE SEVEN SEG SHOULD DISPLAY 00:00 FOREVER
 void loop(){
-
-
   Serial.println("HEY");
-
-
-
-
 }
-
-
-
-
-
-
-
