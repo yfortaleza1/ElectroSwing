@@ -9,7 +9,12 @@ Source
 https://www.youtube.com/watch?v=gBjHI8RJYGY
 */
 
-#include "timer_variables.h"
+#define SECONDS_INCREMENT 30
+#define SECONDS_PER_MINUTE 60
+
+#define MAX_TENS_DIGIT 5
+#define MAX_ONES_DIGIT 9
+
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <math.h> // floor function.
@@ -22,7 +27,11 @@ const short int stopPin = 13;
 
 
 //Define timer variables
-
+short int secTicks = 0;//used to keep track when a second should occur, clock is 16MHZ, so count up to 16 mill and decremenet timer
+short int minTens = 0;//tens place for minutes
+short int minOnes = 0;//ones place for minutes
+short int secTens = 0;//tens place for seconds
+short int secOnes = 0;//ones place for seconds
 int currentState = 0; //0 - timer is reset to 0, 1 - anything else
 
 short int motorStatus;
@@ -133,6 +142,47 @@ void incrementTimer(){
     sei();
 }
 
+// Author: Marc (see ../primary/primary.ino)
+//this function is responsible for time decrementing logic
+//Function decrements timer by 1 SECOND
+//THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
+void decrementTimer(){
+    cli();
+    if(digitalRead(stopPin) != LOW){//IF STOP BUTTON PRESSED, CLEAR TIMER AND END SWING
+        //debounceButton(stopPin);
+        clearTimer();//clear timer
+    }
+
+    else{//IF STOP BUTTON NOT PRESSED, DECREMENT NORMALLY
+
+    if(secOnes != 0){
+        secOnes = secOnes - 1;//decrement secOnes, a second should have passed
+    }
+
+    else if(secOnes == 0 && secTens != 0){
+
+        secOnes = 9;
+        secTens -=1;//decrement sec tens
+    }
+
+    else if(secOnes == 0 && secTens == 0 && minOnes != 0){
+
+        minOnes -=1;
+        secTens = 5;
+        secOnes = 9;
+    }
+
+    else if(secOnes == 0 && secTens == 0 && minOnes == 0 && minTens != 0){
+
+        minTens -=1;
+        minOnes = 9;
+        secTens = 5;
+        secOnes = 9;
+    }
+    }
+
+    sei();
+}
 
 void showTime(){
     lcd.setCursor(14,3);
