@@ -164,40 +164,41 @@ void incrementTimer(){
 }
 
 void showTime(){
-    
-    Serial.print(minTens);
-    Serial.print(minOnes);
-    Serial.print(":");
-    Serial.print(secTens);
-    Serial.print(secOnes);
-    Serial.print("\n");
-    
-    
+    lcd.setCursor(0,0);
+	lcd.print("********************");
 
+	lcd.setCursor(0,1);
+	lcd.print("**** SWING TIMER ****");
 
-    lcd.setCursor(14,3);
-    lcd.print(minTens);
-    lcd.print(minOnes);
-    lcd.print(":");
-    lcd.print(secTens);
-    lcd.print(secOnes);
+	lcd.setCursor(0,2);
+	lcd.print("******* ");
+	lcd.print(minTens);
+	lcd.print(minOnes);
+	lcd.print(":");
+	lcd.print(secTens);
+	lcd.print(secOnes);
+	lcd.print(" ******");
+
+	lcd.setCursor(0,3);
+	lcd.print("********************");
 }
 
 void setup()
 {
   //USED FOR TESTING
   buttonSetup();
-  buttonSetup();
-  minTens = 1;//tens place for minutes
-  minOnes = 3;//ones place for minutes
-  secTens = 1;//tens place for seconds
-  secOnes = 2;//ones place for seconds
+  minTens = 0;//tens place for minutes
+  minOnes = 0;//ones place for minutes
+  secTens = 0;//tens place for seconds
+  secOnes = 0;//ones place for seconds
   lcd.init();
   lcd.backlight();
   cli();
   cli();
   attachInterrupt(digitalPinToInterrupt(incrementPin),incrementTimer, CHANGE); 
   attachInterrupt(digitalPinToInterrupt(decrementPin),decrementTimer, CHANGE); 
+  //attachInterrupt(digitalPinToInterrupt(stopPin), stopTimer, CHANGE);
+  //attachInterrupt(digitalPinToInterrupt(startPin), startTimer, CHANGE);
 
   //SevenSegTimerSetup(); // <- I believe this sets up the registers for timing.
   sei();
@@ -229,11 +230,7 @@ void loop(){
     delay(200); // debounce delay
   }
   showTime();
-<<<<<<< Updated upstream
-}
-=======
   // reset the time by 
-  // reset the time by 
+
 }
->>>>>>> Stashed changes
 
