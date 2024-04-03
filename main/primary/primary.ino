@@ -49,7 +49,7 @@ const short int buttonPins[] = {incrementPin,decrementPin,startPin,stopPin};;//u
 
 const short int numberofDigits=4;
 
-const short int digitPins[numberofDigits] = { 7,9,10,13}; //digits 1, 2, 3, 4
+//const short int digitPins[numberofDigits] = { 7,9,10,13}; //digits 1, 2, 3, 4
 
 
 
@@ -66,6 +66,7 @@ void buttonSetup(){
 //USED THIS FOR TRIGGERING SEGMENT DISPLAY
 //THIS IS USING TIMER0
 //16 bit timer
+/*
 void SevenSegTimerSetup() {
   cli();
   // Clear registers
@@ -88,7 +89,7 @@ void SevenSegTimerSetup() {
   TIMSK0 |= (1 << OCIE0A);
   sei();
 }
-
+*/
 
 
 //USED FOR CLEARING SWING TIME
@@ -105,6 +106,7 @@ void clearTimer(){
 //Function decrements timer by 1 SECOND
 //THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
 void decrementTimer(){
+      Serial.println("AH YOU PUSHED DECREMENT :0 --------- ");
       cli();
       if(digitalRead(stopPin) != LOW){//IF STOP BUTTON PRESSED, CLEAR TIMER AND END SWING
         //debounceButton(stopPin);
@@ -144,7 +146,7 @@ void decrementTimer(){
 
 
 void incrementTimer(){
-
+      Serial.println("AH YOU PUSHED INCREMENT :0 +++++++++++++ ");
       cli();
       if(minOnes < 9 && minOnes >= 0){
         minOnes +=1;//increment minsOnes place
@@ -166,6 +168,7 @@ void showTime(){
     Serial.print(secTens);
     Serial.print(secOnes);
     Serial.print("\n");
+    
 
 
     lcd.setCursor(14,3);
@@ -179,19 +182,19 @@ void showTime(){
 void setup()
 {
   //USED FOR TESTING
-  
+  buttonSetup();
   minTens = 1;//tens place for minutes
   minOnes = 3;//ones place for minutes
   secTens = 1;//tens place for seconds
   secOnes = 2;//ones place for seconds
   lcd.init();
   lcd.backlight();
-  //cli();
+  cli();
   attachInterrupt(digitalPinToInterrupt(incrementPin),incrementTimer, CHANGE); 
   attachInterrupt(digitalPinToInterrupt(decrementPin),decrementTimer, CHANGE); 
 
   //SevenSegTimerSetup(); // <- I believe this sets up the registers for timing.
-  //sei();
+  sei();
   Serial.begin(9600);
 
 }
@@ -200,5 +203,15 @@ void setup()
 //MOTOR WILL KEEP OSCILLATING SO LONG AS THERE'S TIME REMAINING
 //ONCE TIME RUNS OUT THE SEVEN SEG SHOULD DISPLAY 00:00 FOREVER
 void loop(){
+  if (digitalRead(incrementPin) == HIGH) {
+    incrementTimer();
+    delay(200); // debounce delay
+  }
+
+  if (digitalRead(decrementPin) == HIGH) {
+    decrementTimer();
+    delay(200); // debounce delay
+  }
   showTime();
+  // reset the time by 
 }
