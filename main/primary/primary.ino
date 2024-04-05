@@ -20,8 +20,9 @@ const short int incrementPin = 11;
 const short int decrementPin = 10;
 const short int startPin = 2; //Interrupt capable pin
 const short int stopPin = 3; //Interrupt capable pin
+const short int clearPin = 4;
 const short int masterPin = 12;
-const short int buttonPins[] = {incrementPin,decrementPin,startPin,stopPin};//used for buttons
+const short int buttonPins[] = {incrementPin, decrementPin, startPin, stopPin, clearPin};//used for buttons
 
 //Define global timer variables
 volatile int minutes = 0;
@@ -39,6 +40,7 @@ bool lastIncrementButtonState = HIGH;
 bool lastDecrementButtonState = HIGH;
 bool lastStartButtonState = HIGH;
 bool lastStopButtonState = HIGH;
+bool lastClearButtonState = HIGH;
 
 //Initialize LCD
 LiquidCrystal_I2C lcd(0x27, 20, 4); //Set LCD address for 16 chars and 2 line display (need to check address of COM port)
@@ -87,6 +89,7 @@ void loop() {
     bool currentDecrementState = digitalRead(decrementPin);
     bool currentStartState = digitalRead(startPin);
     bool currentStopState = digitalRead(stopPin);
+	bool currentClearState = digitalRead(clearPin);
 
     unsigned long currentMillis = millis();
 
@@ -119,11 +122,19 @@ void loop() {
         lastDebounceTime = currentMillis; // Update the debounce timer
     }
 
+	if (currentClearState != lastClearButtonState) {
+        if (currentMillis - lastDebounceTime > debounceDelay && currentClearState == LOW) {
+            clearTimer();
+        }
+        lastDebounceTime = currentMillis; // Update the debounce timer
+    }
+
     // Update the last known states
     lastIncrementButtonState = currentIncrementState;
     lastDecrementButtonState = currentDecrementState;
     lastStartButtonState = currentStartState;
     lastStopButtonState = currentStopState;
+	lastClearButtonState = currentClearState;
 
 }
 
@@ -145,11 +156,11 @@ void timerTick(){
 
 void startTime(){
 	
-	if(!countDownActive && timeIsSet){
-		countDownActive = true;
-		digitalWrite(masterPin, HIGH); //Send output signal as HIGH
-		Timer1.resume(); //Resume timer interrupt for decrementing the countdown
-	}
+	if (!countDownActive && timeIsSet && (minutes > 0 || seconds > 0)) { // Additional check for actual time
+        countDownActive = true;
+		Timer1.resume(); // Start countdown
+        digitalWrite(masterPin, HIGH); // Signal that countdown is active
+    }
 	
 
 }
@@ -176,9 +187,11 @@ void buttonSetup(){
 //USED FOR CLEARING SWING TIME
 void clearTimer(){
 	noInterrupts();
+	Timer1.stop();
 	minutes = 0;
 	seconds = 0;
 	timeIsSet = false;
+	isAtStartup = true;
 	interrupts();
 	updateTime();
 }
@@ -203,42 +216,41 @@ void decrementTime(){
 }
 
 void decrementPresetTime(){ //This function will only be called when the countdown is stalled/stopped
-	if (!countDownActive) { // Allow decrementing if countdown hasn't started
-        Serial.println("Decrementing Time");
-        noInterrupts();
-        if (minutes > 0 || seconds > 0) { // Prevent decrementing into negative
-            if (seconds == 0 && minutes > 0) {
-                minutes--;
-                seconds = 59;
-            } else if (seconds > 0) {
-                seconds--;
-            }
-            timeIsSet = true;
-        }
-        interrupts();
-        updateTime();
+	noInterrupts(); // Disable interrupts
+    // Calculate the total time in seconds
+    int totalTimeInSeconds = minutes * 60 + seconds;
+
+    // Check to prevent underflow and ensure total time is at least 30 seconds before decrementing
+    if (totalTimeInSeconds >= 30) {
+        totalTimeInSeconds -= 30; // Decrement by 30 seconds
+
+        // Convert back to minutes and seconds
+        minutes = totalTimeInSeconds / 60;
+        seconds = totalTimeInSeconds % 60;
+        
+        timeIsSet = true; // Indicate that time has been set or adjusted
     }
+    interrupts();
+    updateTime();
 }
 
 void incrementTime(){
     Serial.println("AH YOU PUSHED INCREMENT :0 +++++++++++++ ");
-    if(!countDownActive){
-		noInterrupts(); //Disable interrupts
+    noInterrupts(); //Disable interrupts
 	
-		if(isAtStartup){
-			minutes = 0;
-			isAtStartup = false;
-		}else{
-			minutes++;
-		}
-
-		if(minutes >= 100){ //Check if minutes exceed 99
-			minutes = 0;
-		}
-		interrupts();
-		timeIsSet = true;
-		updateTime();
+	if(isAtStartup){
+		minutes = 0;
+		isAtStartup = false;
+	}else{
+		minutes++;
 	}
+
+	if(minutes >= 100){ //Check if minutes exceed 99
+		minutes = 0;
+	}
+	interrupts();
+	timeIsSet = true;
+	updateTime();
 }
 
 void updateTime(){
@@ -261,7 +273,7 @@ void printStaticMessage(){
 	lcd.print("********************");
 
 	lcd.setCursor(0,1);
-	lcd.print("**** SWING TIMER ****");
+	lcd.print("**** AVA'S SWING ****");
 
 	lcd.setCursor(0,2);
 	lcd.print("****");
