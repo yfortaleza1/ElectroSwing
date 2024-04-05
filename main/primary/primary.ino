@@ -55,7 +55,8 @@ void setup()
   //USED FOR TESTING
   buttonSetup();
   clearTimer();
-
+  updateTime();
+  
   lcd.init();
   lcd.backlight();
 
@@ -181,10 +182,15 @@ void decrementTime(){
 	Serial.println("AH YOU PUSHED DECREMENT :0 +++++++++++++ ");
 	noInterrupts(); //Disable interrupts
 
-	if(minutes > 0){
-		minutes--;
+	if(seconds > 0){
+		seconds--; //Countdown each second
+	}else if(minutes > 0){
+		minutes --; //Decrement minutes if seconds is already at 0
+		seconds = 59; //Resets seconds to 59;
 	}
+
 	interrupts();
+	updateTime();
 }
 
 
