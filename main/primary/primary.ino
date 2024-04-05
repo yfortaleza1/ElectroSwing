@@ -229,6 +229,7 @@ void decrementPresetTime(){ //This function will only be called when the countdo
         seconds = totalTimeInSeconds % 60;
         
         timeIsSet = true; // Indicate that time has been set or adjusted
+        timeIsSet = true; // Indicate that time has been set or adjusted
     }
     interrupts();
     updateTime();
