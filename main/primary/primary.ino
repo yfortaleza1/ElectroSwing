@@ -20,13 +20,15 @@ const short int incrementPin = 11;
 const short int decrementPin = 10;
 const short int startPin = 2; //Interrupt capable pin
 const short int stopPin = 3; //Interrupt capable pin
-const short int masterPin = 6;
+const short int masterPin = 12;
 const short int buttonPins[] = {incrementPin,decrementPin,startPin,stopPin};//used for buttons
 
 //Define global timer variables
 volatile int minutes = 0;
 volatile int seconds = 0;
 volatile bool countDownActive = false;
+volatile bool isAtStartup = true;
+volatile bool timeIsSet = false;
 
 // Global variables for debounce
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
@@ -52,18 +54,24 @@ void timerTick();
 void printStaticMessage();
 
 void setup(){
-	//USED FOR TESTING
+	//setup
 	buttonSetup();
 	clearTimer();
 
+	//LCD initialization
 	lcd.init();
 	lcd.backlight();
 	lcd.clear();
 
+	//Continued setup
+	printStaticMessage();
+	updateTime();
+
+	//Attaching interrupt pins to ISRs
 	attachInterrupt(digitalPinToInterrupt(stopPin), stopTime, CHANGE);
 	attachInterrupt(digitalPinToInterrupt(startPin), startTime, CHANGE);
 
-	//Setup using Timer library
+	//Setup for using Timer library
 	Timer1.initialize(1000000); //Initialize TimerONe to 1 second intervals
 	Timer1.attachInterrupt(timerTick); //Attach timerTick function to the timer
 	Timer1.stop(); //Stop timer until explicityly started
@@ -117,7 +125,6 @@ void loop() {
     lastStartButtonState = currentStartState;
     lastStopButtonState = currentStopState;
 
-    updateTime(); // Refresh the display with the current timer value
 }
 
 
@@ -137,18 +144,22 @@ void timerTick(){
 
 
 void startTime(){
-	if(!countDownActive){
+	
+	if(!countDownActive && timeIsSet){
 		countDownActive = true;
 		digitalWrite(masterPin, HIGH); //Send output signal as HIGH
 		Timer1.resume(); //Resume timer interrupt for decrementing the countdown
 	}
+	
 
 }
 
 void stopTime(){
-	countDownActive = false;
-	Timer1.stop(); //Stop the timer interrupt;
-	digitalWrite(masterPin, LOW);
+	if(timeIsSet){
+		countDownActive = false;
+		Timer1.stop(); //Stop the timer interrupt;
+		digitalWrite(masterPin, LOW);
+	}
 }
 
 
@@ -164,8 +175,12 @@ void buttonSetup(){
 
 //USED FOR CLEARING SWING TIME
 void clearTimer(){
-  minutes = 0;
-  seconds = 0;
+	noInterrupts();
+	minutes = 0;
+	seconds = 0;
+	timeIsSet = false;
+	interrupts();
+	updateTime();
 }
 
 
@@ -188,39 +203,46 @@ void decrementTime(){
 }
 
 void decrementPresetTime(){ //This function will only be called when the countdown is stalled/stopped
-	noInterrupts(); //Disable interrupts
-
-	if(seconds > 0){
-		seconds--; //Countdown each second
-	}else if(minutes > 0){
-		minutes --; //Decrement minutes if seconds is already at 0
-		seconds = 59; //Resets seconds to 59;
-	}
-
-	interrupts();
-	updateTime();
+	if (!countDownActive) { // Allow decrementing if countdown hasn't started
+        Serial.println("Decrementing Time");
+        noInterrupts();
+        if (minutes > 0 || seconds > 0) { // Prevent decrementing into negative
+            if (seconds == 0 && minutes > 0) {
+                minutes--;
+                seconds = 59;
+            } else if (seconds > 0) {
+                seconds--;
+            }
+            timeIsSet = true;
+        }
+        interrupts();
+        updateTime();
+    }
 }
 
 void incrementTime(){
     Serial.println("AH YOU PUSHED INCREMENT :0 +++++++++++++ ");
-    noInterrupts(); //Disable interrupts
-	minutes++; //Increment minutes
+    if(!countDownActive){
+		noInterrupts(); //Disable interrupts
+	
+		if(isAtStartup){
+			minutes = 0;
+			isAtStartup = false;
+		}else{
+			minutes++;
+		}
 
-	if(minutes >= 100){ //Check if minutes exceed 99
-		minutes = 0;
+		if(minutes >= 100){ //Check if minutes exceed 99
+			minutes = 0;
+		}
+		interrupts();
+		timeIsSet = true;
+		updateTime();
 	}
-	interrupts();
 }
 
 void updateTime(){
-	// Assuming your display format always occupies the same amount of space,
-    // you can clear just the specific part of the display being updated to minimize flicker.
-    lcd.setCursor(0, 2); // Position cursor at the start of the row for time display
-    lcd.print("                "); // Clear the row with spaces
-
-    // Now print the time in the same position
-    lcd.setCursor(0, 2);
-	lcd.print("******");
+    lcd.setCursor(8, 2);
     if (minutes < 10) {
         lcd.print("0"); // Leading zero for minutes
     }
@@ -230,11 +252,24 @@ void updateTime(){
         lcd.print("0"); // Leading zero for seconds
     }
     lcd.print(seconds);
-	lcd.print("*****");
     lcd.print(" "); // Clear any leftover characters from previous displays
 }
 
+
 void printStaticMessage(){
-	
+	lcd.setCursor(0,0);
+	lcd.print("********************");
+
+	lcd.setCursor(0,1);
+	lcd.print("**** SWING TIMER ****");
+
+	lcd.setCursor(0,2);
+	lcd.print("****");
+
+	lcd.setCursor(15,2);
+	lcd.print(" ****");
+
+	lcd.setCursor(0,3);
+	lcd.print("********************");
 }
 
