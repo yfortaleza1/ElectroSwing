@@ -9,9 +9,7 @@ Todo: use master pin to signal to secondary that it can do its logic.
 (Meaning that ride time is not zero, so it should continue swinging.)
 */
 
-//THIS IS USING ATMEGA2560 
-//ONLY WORKS FOR THE MEGA REV3, THE ONE WE ARE PLANNING ON USING FOR THE FINAL PRODUCT
-//THIS CODE WON'T WORK ON THE UNO BECCAUSE OF DIFFERENT REGISTERS AND CLOCK SPEED (NEED TO CONFIRM)
+//THIS IS USING Arduino UNO R3
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
 #include <math.h> // floor function.
@@ -75,67 +73,52 @@ void setup()
 //MOTOR WILL KEEP OSCILLATING SO LONG AS THERE'S TIME REMAINING
 //ONCE TIME RUNS OUT THE SEVEN SEG SHOULD DISPLAY 00:00 FOREVER
 void loop(){
-	// Current reading from the input pin
-	bool currentIncrementState = digitalRead(incrementPin);
-	bool currentDecrementState = digitalRead(decrementPin);
-	bool currentStartState = digitalRead(startPin);
-	bool currentStopState = digitalRead(stopPin);
+	// Improved button debounce and action handling
+    bool currentIncrementState = digitalRead(incrementPin);
+    bool currentDecrementState = digitalRead(decrementPin);
+    bool currentStartState = digitalRead(startPin);
+    bool currentStopState = digitalRead(stopPin);
 
-	// Check if the button state has changed (button press or release)
-	if (currentIncrementState != lastIncrementButtonState) {
-	// reset the debouncing timer
-	lastDebounceTime = millis();
-	}
+    // Process increment button
+    if (currentIncrementState != lastIncrementButtonState) {
+        lastDebounceTime = millis();
+    } else if ((millis() - lastDebounceTime) > debounceDelay && currentIncrementState == LOW) {
+        incrementTime();
+        lastDebounceTime = millis(); // Prevent immediate repeat
+    }
 
-	if (currentDecrementState != lastDecrementButtonState) {
-	lastDebounceTime = millis();
-	}
+    // Process decrement button
+    if (currentDecrementState != lastDecrementButtonState) {
+        lastDebounceTime = millis();
+    } else if ((millis() - lastDebounceTime) > debounceDelay && currentDecrementState == LOW) {
+        decrementTime();
+        lastDebounceTime = millis();
+    }
 
-	if (currentStartState != lastStartButtonState) {
-	lastDebounceTime = millis();
-	}
+    // Process start button
+    if (currentStartState != lastStartButtonState) {
+        lastDebounceTime = millis();
+    } else if ((millis() - lastDebounceTime) > debounceDelay && currentStartState == LOW) {
+        startTime();
+        lastDebounceTime = millis();
+    }
 
-	if (currentStopState != lastStopButtonState) {
-	lastDebounceTime = millis();
-	}
+    // Process stop button
+    if (currentStopState != lastStopButtonState) {
+        lastDebounceTime = millis();
+    } else if ((millis() - lastDebounceTime) > debounceDelay && currentStopState == LOW) {
+        stopTime();
+        lastDebounceTime = millis();
+    }
 
-	// Check if the debounce period has passed (the button state has changed)
-	if ((millis() - lastDebounceTime) > debounceDelay) {
-	// Take action only if the button was pressed (assuming active LOW)
-	if (currentIncrementState == LOW) {
-		incrementTime();
-	}
+    // Update last states at the end of the loop
+    lastIncrementButtonState = currentIncrementState;
+    lastDecrementButtonState = currentDecrementState;
+    lastStartButtonState = currentStartState;
+    lastStopButtonState = currentStopState;
 
-	if (currentDecrementState == LOW) {
-		decrementTime();
-	}
-
-	if (currentStartState == LOW) {
-		startTime();
-	}
-
-	if (currentStopState == LOW) {
-		stopTime();
-	}
-	}
-
-	// Save the reading. Next time through the loop, it'll be the lastButtonState:
-	lastIncrementButtonState = currentIncrementState;
-	lastDecrementButtonState = currentDecrementState;
-	lastStartButtonState = currentStartState;
-	lastStopButtonState = currentStopState;
-
-	if (digitalRead(incrementPin) == HIGH) {
-	incrementTime();
-	delay(200); // debounce delay
-	}
-
-	if (digitalRead(decrementPin) == HIGH) {
-	decrementTime();
-	delay(200); // debounce delay
-	}
-
-	updateTime();
+    // Your existing updateTime call remains here
+    updateTime();
 }
 
 
