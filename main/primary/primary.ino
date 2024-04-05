@@ -49,77 +49,75 @@ void startTime();
 void stopTime();
 void updateTime();
 void timerTick();
+void printStaticMessage();
 
-void setup()
-{
-  //USED FOR TESTING
-  buttonSetup();
-  clearTimer();
-  updateTime();
-  
-  lcd.init();
-  lcd.backlight();
+void setup(){
+	//USED FOR TESTING
+	buttonSetup();
+	clearTimer();
 
-  attachInterrupt(digitalPinToInterrupt(stopPin), stopTime, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(startPin), startTime, CHANGE);
+	lcd.init();
+	lcd.backlight();
+	lcd.clear();
 
-  //Setup using Timer library
-  Timer1.initialize(1000000); //Initialize TimerONe to 1 second intervals
-  Timer1.attachInterrupt(timerTick); //Attach timerTick function to the timer
-  Timer1.stop(); //Stop timer until explicityly started
-  Serial.begin(9600);
+	attachInterrupt(digitalPinToInterrupt(stopPin), stopTime, CHANGE);
+	attachInterrupt(digitalPinToInterrupt(startPin), startTime, CHANGE);
+
+	//Setup using Timer library
+	Timer1.initialize(1000000); //Initialize TimerONe to 1 second intervals
+	Timer1.attachInterrupt(timerTick); //Attach timerTick function to the timer
+	Timer1.stop(); //Stop timer until explicityly started
+	Serial.begin(9600);
 }
 
 
 //MOTOR WILL KEEP OSCILLATING SO LONG AS THERE'S TIME REMAINING
 //ONCE TIME RUNS OUT THE SEVEN SEG SHOULD DISPLAY 00:00 FOREVER
-void loop(){
-	// Improved button debounce and action handling
+void loop() {
+    // Read the current state of buttons
     bool currentIncrementState = digitalRead(incrementPin);
     bool currentDecrementState = digitalRead(decrementPin);
     bool currentStartState = digitalRead(startPin);
     bool currentStopState = digitalRead(stopPin);
 
-    // Process increment button
+    unsigned long currentMillis = millis();
+
+    // Check each button for a state change from HIGH to LOW (button press)
     if (currentIncrementState != lastIncrementButtonState) {
-        lastDebounceTime = millis();
-    } else if ((millis() - lastDebounceTime) > debounceDelay && currentIncrementState == LOW) {
-        incrementTime();
-        lastDebounceTime = millis(); // Prevent immediate repeat
+        if (currentMillis - lastDebounceTime > debounceDelay && currentIncrementState == LOW) {
+            incrementTime();
+        }
+        lastDebounceTime = currentMillis; // Update the debounce timer
     }
 
-    // Process decrement button
     if (currentDecrementState != lastDecrementButtonState) {
-        lastDebounceTime = millis();
-    } else if ((millis() - lastDebounceTime) > debounceDelay && currentDecrementState == LOW) {
-        decrementTime();
-        lastDebounceTime = millis();
+        if (currentMillis - lastDebounceTime > debounceDelay && currentDecrementState == LOW) {
+            decrementPresetTime();
+        }
+        lastDebounceTime = currentMillis; // Update the debounce timer
     }
 
-    // Process start button
     if (currentStartState != lastStartButtonState) {
-        lastDebounceTime = millis();
-    } else if ((millis() - lastDebounceTime) > debounceDelay && currentStartState == LOW) {
-        startTime();
-        lastDebounceTime = millis();
+        if (currentMillis - lastDebounceTime > debounceDelay && currentStartState == LOW) {
+            startTime();
+        }
+        lastDebounceTime = currentMillis; // Update the debounce timer
     }
 
-    // Process stop button
     if (currentStopState != lastStopButtonState) {
-        lastDebounceTime = millis();
-    } else if ((millis() - lastDebounceTime) > debounceDelay && currentStopState == LOW) {
-        stopTime();
-        lastDebounceTime = millis();
+        if (currentMillis - lastDebounceTime > debounceDelay && currentStopState == LOW) {
+            stopTime();
+        }
+        lastDebounceTime = currentMillis; // Update the debounce timer
     }
 
-    // Update last states at the end of the loop
+    // Update the last known states
     lastIncrementButtonState = currentIncrementState;
     lastDecrementButtonState = currentDecrementState;
     lastStartButtonState = currentStartState;
     lastStopButtonState = currentStopState;
 
-    // Your existing updateTime call remains here
-    updateTime();
+    updateTime(); // Refresh the display with the current timer value
 }
 
 
@@ -153,10 +151,6 @@ void stopTime(){
 	digitalWrite(masterPin, LOW);
 }
 
-
-void timerInterrupt(){
-
-}
 
 //setup button pins
 void buttonSetup(){
@@ -193,6 +187,19 @@ void decrementTime(){
 	updateTime();
 }
 
+void decrementPresetTime(){ //This function will only be called when the countdown is stalled/stopped
+	noInterrupts(); //Disable interrupts
+
+	if(seconds > 0){
+		seconds--; //Countdown each second
+	}else if(minutes > 0){
+		minutes --; //Decrement minutes if seconds is already at 0
+		seconds = 59; //Resets seconds to 59;
+	}
+
+	interrupts();
+	updateTime();
+}
 
 void incrementTime(){
     Serial.println("AH YOU PUSHED INCREMENT :0 +++++++++++++ ");
@@ -206,30 +213,28 @@ void incrementTime(){
 }
 
 void updateTime(){
-	lcd.clear();
-  	lcd.setCursor(0,0);
-	lcd.print("********************");
+	// Assuming your display format always occupies the same amount of space,
+    // you can clear just the specific part of the display being updated to minimize flicker.
+    lcd.setCursor(0, 2); // Position cursor at the start of the row for time display
+    lcd.print("                "); // Clear the row with spaces
 
-	lcd.setCursor(0,1);
-	lcd.print("**** SWING TIMER ****");
+    // Now print the time in the same position
+    lcd.setCursor(0, 2);
+	lcd.print("******");
+    if (minutes < 10) {
+        lcd.print("0"); // Leading zero for minutes
+    }
+    lcd.print(minutes);
+    lcd.print(":");
+    if (seconds < 10) {
+        lcd.print("0"); // Leading zero for seconds
+    }
+    lcd.print(seconds);
+	lcd.print("*****");
+    lcd.print(" "); // Clear any leftover characters from previous displays
+}
 
-	lcd.setCursor(0,2);
-	if(minutes > 10){
-		lcd.print("******* ");
-		lcd.print("0");
-		lcd.print(minutes);
-		lcd.print(":");
-		lcd.print(seconds);
-		lcd.print(" *******");
-	}else{
-		lcd.print("******* ");
-		lcd.print(minutes);
-		lcd.print(":");
-		lcd.print(seconds);
-		lcd.print(" *******");
-	}
-
-	lcd.setCursor(0,3);
-	lcd.print("********************");
+void printStaticMessage(){
+	
 }
 
