@@ -29,6 +29,7 @@ const int MAX_ANGLE = -45;
 
 const int ADXL345 = 0x53; // The ADXL345 sensor I2C address
 
+//PRE-DEFINED ANGULAR VARIABLES
 const int numAngles = 7;
 const int angles[] = {0,15,30,45,60,75,80.95};
 const int motorStrengths[] = {400, 500, 600, 700, 800};
@@ -38,6 +39,7 @@ const int minTurnOnAngle = 0;
 const int maxTurnOnAngle = -15;
 
 
+//ANGULAR MATH VARIABLES
 float motorStrength = 0;
 float X_out, Y_out, Z_out;  // Outputs
 float roll,pitch,rollF,pitchF=0;
@@ -46,9 +48,15 @@ float prevXAngle, xAngle, yAngle, zAngle;//holds angle in respective deminsion
 int currMaxAngle = 0;//keeps track of max angle on return swings in quadrant 3
 int prevRoll = 0;//used in movingFoward function to determine if the swing is moving foward
 
+//Timer variables 
+int secTick = 0;//used to count up to a second in interrupt
+float secCounter = 0;//keep tracks of the number of seconds that's passed in motor timer interrupt
+float swingPeriod = 2.5;//desired period for swing motion 
+
 //used to determine if load should be pushed by angle based on timer based
 //in the setup function
 bool accelWorks = false;//keeps track if accelerometer works on startup
+
 
 //setup LED pins to show what angle load is in
 //USED FOR TESTING
@@ -320,6 +328,46 @@ bool accelOffline(){
   return false;
 }
 
+//USED THIS FOR TRIGGERING SEGMENT DISPLAY
+//THIS IS USING TIMER0
+//16 bit timer
+void motorTimerSetup() {
+  cli();
+  // Clear registers
+  TCCR0A = 0;
+  TCCR0B = 0;
+  TCNT0 = 0;
+
+  // 100.16025641025641 Hz (16000000/((155+1)*1024))
+  //period is 0.01 seconds
+  //OCR0A = 255;
+
+  // 744.047 Hz (16000000/((20+1)*1024))
+  //Period is 0.001344 seconds
+  //OCR0A = 30;
+  // CTC
+  TCCR0A |= (1 << WGM01);
+  // Prescaler 1024
+  TCCR0B |= (1 << CS02) | (1 << CS00);
+  // Output Compare Match A Interrupt Enable
+  TIMSK0 |= (1 << OCIE0A);
+  sei();
+}
+
+//disble motor timer
+void disableMotorInterrupt(){  
+  //Disable Compare Match A Interrupt
+  TIMSK0 |= (0 << OCIE0A);
+}
+
+
+//enable motor timer
+void enableMotorInterrupt(){  
+  //Disable Compare Match A Interrupt
+  TIMSK0 |= (1 << OCIE0A);
+}
+
+
 
 //sets everything up
 void setup() {
@@ -391,3 +439,38 @@ void loop() {
   //Serial.println(pitchF);
 
 }
+
+
+
+//With the settings above, this IRS will trigger each 500ms.
+ISR(TIMER1_COMPA_vect){
+  cli();//disable all interrupts
+
+  secTick += 1;//increment tick counter
+
+  //Resolution is 0.5 seonds
+  if(secTick >= 50){//want the counter to go up to 50 so that at least a second has passed
+    secCounter +=0.5;//increment second's counter
+  }
+
+  //need a function to re-enable timer0 functionality, because the delay functions use it
+  //so i need to re-enable timer0 without triggering this interrupt
+
+  //once swing period is achieved move the motor
+  if(secCounter == swingPeriod){
+
+    secCounter = 0;//reset second's counter
+    disableMotorInterrupt();
+    sei();
+    moveMotors();
+    cli();
+    enableMotorInterrupt();
+  }
+
+  sei();//re-enable all interrupts
+
+}
+
+
+
+
