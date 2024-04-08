@@ -15,6 +15,12 @@
 #include <Wire.h>  // Wire library - used for I2C communication
 #include <time.h>
 
+// usage: detect when the accelerometer is offline.
+#define MIN_ACCEL_OFFLINE_COUNT 50
+#define MAX_ACCEL_OFFLINE_COUNT 100
+// in case we want to detect a range of values that indicate we aren't getting info from the accelerometer.
+#define MIN_VALUE_ACCELL_OFFLINE -1
+#define MAX_VALUE_ACCELL_OFFLINE 1
 
 // defines pins numbers
 const short int masterPin = 2;
@@ -56,7 +62,8 @@ float swingPeriod = 2.5;//desired period for swing motion
 //used to determine if load should be pushed by angle based on timer based
 //in the setup function
 bool accelWorks = false;//keeps track if accelerometer works on startup
-
+// Global var for accelerometer offline
+unsigned int numAccelReadZero = 0;
 
 //setup LED pins to show what angle load is in
 //USED FOR TESTING
@@ -325,6 +332,15 @@ bool inQuadrantThree(){
 //function for determining if acceleteromet is offline
 //haven't worked out the logic for it yet
 bool accelOffline(){
+	if ( MIN_VALUE_ACCELL_OFFLINE < X_out < MAX_VALUE_ACCELL_OFFLINE &&
+			MIN_VALUE_ACCELL_OFFLINE < Y_out < MAX_VALUE_ACCELL_OFFLINE &&
+			MIN_VALUE_ACCELL_OFFLINE < Z_out < MAX_VALUE_ACCELL_OFFLINE) {
+			numAccelReadZero += 1;
+	}
+
+	if (numAccelReadZero >= MAX_ACCEL_OFFLINE_COUNT) {
+		return true;
+	}
   return false;
 }
 
