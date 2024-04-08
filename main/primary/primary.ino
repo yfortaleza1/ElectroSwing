@@ -164,10 +164,8 @@ void loop() {
     lastDecrementButtonState = currentDecrementState;
     lastStartButtonState = currentStartState;
     lastStopButtonState = currentStopState;
-	lastClearButtonState = currentClearState;
-
+	  lastClearButtonState = currentClearState;
 }
-
 
 
 /*
@@ -193,8 +191,6 @@ void startTime(){
     }
 	
 
-}
-
 void stopTime(){
 	if(timeIsSet){
 		countDownActive = false;
@@ -212,7 +208,6 @@ void buttonSetup(){
 	pinMode(masterPin, OUTPUT);
 	digitalWrite(masterPin, LOW);
 }
-
 
 //USED FOR CLEARING SWING TIME
 void clearTimer(){
