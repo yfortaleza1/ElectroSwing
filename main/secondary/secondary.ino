@@ -38,9 +38,22 @@ const int WACKY_MOTOR_STRENGTH = -1;
 const int minTurnOnAngle = 0;
 const int maxTurnOnAngle = -15;
 
+//ACCELEROMETER TEST VARIABLES  
+const int ACCEL_TEST_NUM = 200;
+const int MAX_ACCEL_FAILS = ACCEL_TEST_NUM/3;
+int accelCounter = 0;//this variable counts to ACCEL_TEST_NUM in accelOffline
+int accelFailCounter = 0;//this variable increments/resets in accelOffline
+bool accelStartupCheckResult;
+
+
+//MOTOR STRENGTH VARIABLE
+//using the microsecondsDelay function
+//valid min is 250
+//valid max is 10000
+float motorStrength = 7000;
+
 
 //ANGULAR MATH VARIABLES
-float motorStrength = 0;
 float X_out, Y_out, Z_out;  // Outputs
 float roll,pitch,rollF,pitchF=0;
 float prevXAngle, xAngle, yAngle, zAngle;//holds angle in respective deminsion
@@ -158,6 +171,17 @@ void getRollAndPitch() {
 
 }
 
+
+//used to get the accel, angle, and roll/pitch in one go
+//this is because getRollAndPitch rely on data from
+//getAccel and getAngle to make calculations
+//The same goes with getAngle and getAccel
+void getOrientation(){
+  getAccel();
+  getAngle();
+  getRollAndPitch();
+  }
+
 //determines if motor is in correct region to turn on.
 //basically if it's in quadrant 4 of pi circle, its fine to move.
 //specific angles will be fine turned
@@ -191,6 +215,31 @@ bool movingFoward(){
 
 }
 
+//use to check to see if the accelerometer is behaving corretly on startup
+//if the accelerometer returns valid values X NUMBER OF times,
+//its fine to drive the motors through accelerometer (so return true)
+//otherwise return false so that interrupts can be setup up to drive
+//motors based on timing intervals (period).
+//returns true by default
+bool checkAccelStartup(){
+
+  int numOfFails = 0;
+  for(int i =0;i<ACCEL_TEST_NUM;i++){
+    getOrientation();
+    if(xAngle == 0 && yAngle == 0 && zAngle == 0){
+        numOfFails +=1;//increment the number of fails that have occured
+    }
+
+    //fails if a third of the tests fail
+    if(numOfFails >= MAX_ACCEL_FAILS){
+        return false;
+    }
+  }
+
+  return true;
+
+}
+
 //setup Motors
 void setupMotors() {
     // Sets the two pins as Outputs
@@ -198,7 +247,7 @@ void setupMotors() {
     pinMode(dirPin, OUTPUT);
 
     pinMode(enPin, OUTPUT);
-    digitalWrite(enPin, LOW);
+    digitalWrite(enPin, HIGH);
 
 
     pinMode(masterPin, INPUT);//pin used for recieved command form MASTER ARDUINO
@@ -234,14 +283,7 @@ void determineMotorStrength(){
       }
     }
   }
-
-
-
 }
-
-
-
-
 
 //Function that moves motors at specified strength
 void moveMotors(){
@@ -252,7 +294,7 @@ void moveMotors(){
    //that Ava on the return swing max angle was greater than -45
    //if that was true, motor strength should have been set to 
    //WACKY_MOTOR_STRENGTH
-   if(motorStrength == WACKY_MOTOR_STRENGTH){
+   /*if(motorStrength == WACKY_MOTOR_STRENGTH){
       
       //setting the enable pin high on the microsteppr, prevents the motor from moving
       //setting the enable pin low on the microstepper, allows the motor to move
@@ -260,9 +302,9 @@ void moveMotors(){
       //the enable pin should be High so that the motor doesn't accidently move
       digitalWrite(enPin, HIGH);//prevents the motor from moving
       return;//do nothing
-   }
+   }*/
 
-   else{
+   //else{
 
       digitalWrite(enPin, LOW);//allows the motor to move
 
@@ -289,14 +331,11 @@ void moveMotors(){
       // THERE IS SOME AMOUNT OF DELAY WHEN THE SIGNAL GOES THROUGH THE MICROSTEPPER
       // NEED TO GET GIVE SIGNALS MORE TIME TO PASS THROUGH BEFORE NEXT INSTRUCTION
       delay(2000); // Two Second Delay
-   }
+   //}
 
     digitalWrite(enPin, HIGH);//prevents the motor from moving
 
 }
-
-
-
 
 //this function is used to determine if the
 //the acceleteromter is in quadrant 4
@@ -325,7 +364,22 @@ bool inQuadrantThree(){
 //function for determining if acceleteromet is offline
 //haven't worked out the logic for it yet
 bool accelOffline(){
-  return false;
+  accelCounter+=1;//increment Accelerometer Test counter
+  
+  if(accelCounter == ACCEL_TEST_NUM){
+    accelCounter = 0;//reset the test counter
+    accelFailCounter = 0;//reset the fail counter
+  }
+
+
+  if(xAngle = 0 && yAngle == 0 && zAngle == 0){
+    accelFailCounter +=1;
+  }
+  if(accelFailCounter > accelCounter || accelFailCounter >= MAX_ACCEL_FAILS){
+    return false;
+  }
+
+  return true;
 }
 
 //USED THIS FOR TRIGGERING SEGMENT DISPLAY
@@ -340,7 +394,7 @@ void motorTimerSetup() {
 
   // 100.16025641025641 Hz (16000000/((155+1)*1024))
   //period is 0.01 seconds
-  //OCR0A = 255;
+  OCR0A = 255;
 
   // 744.047 Hz (16000000/((20+1)*1024))
   //Period is 0.001344 seconds
@@ -369,85 +423,88 @@ void enableMotorInterrupt(){
 
 
 
+
 //sets everything up
+//uses accelWorks() function to determine how motors
+//should be triggered
 void setup() {
   Serial.begin(9600); // Initiate serial communication for printing the results on the Serial monitor
-  setupLED();//setup LEDs
-  setupAccel();//setup acceleterometer
-  setupMotors();//setup motors
 
-  accelWorks = accelOffline();
-  
+  //setupLED();//setup LEDs
+  setupAccel();//setup acceleterometer
+  accelStartupCheckResult = checkAccelStartup();
+
+  if(accelStartupCheckResult == false){
+    setupMotors();//setup motors
+    motorTimerSetup();
+  }
+
+  else{
+    //do nothing else for setting up
+    //if Accel works
+  }
+
 }
 
+
+
 void loop() {
+
+  //moveMotors();
+
   
-  /*Serial.print("X angle: ");
+  //gets accel, angles, roll/pitch
+  getOrientation();
+
+  Serial.print("X angle: ");
   Serial.print(xAngle);
   
   Serial.print(" Y angle: ");
   Serial.print(yAngle);
   
   Serial.print(" Z angle: ");
-  Serial.println(zAngle);*/
+  Serial.println(zAngle);
   
 
-  //this while loop needs to be replaced with interupt code
-  //basically if it's detected that while the program is running
-  //the acceleterometer isn't working.
-  //the program counter will be stuck in this while loop forever,
-  //until the system is restarted.
-  //at this point the system will be blind to how ava is currently swinging
-  //and its not safe to move her.
-  while(accelWorks != accelOffline){
-    //stop program
-    //set enable pin high
-    digitalWrite(enPin, HIGH);//prevents the motor from moving
 
-  }
 
   //functionality for how to move Ava when the acceleomter is working
-  while(accelOffline() == false){//if accel is online do angle based pushing
 
-    getAccel();//update acceleration values
-    getAngle();//update angle values
-    getRollAndPitch();//get roll and pitch values
+  if(accelStartupCheckResult == true){
+    while(accelOffline() == false){//if accel is online do angle based pushing
+
+      getAccel();//update acceleration values
+      getAngle();//update angle values
+      getRollAndPitch();//get roll and pitch values
 
 
-    if(movingFoward() == false && inQuadrantThree() == true){
-      determineMotorStrength();//determine motorStrength
-    }
-    //check to see if its okay to move motors
-    if(inMotorTurnOnZone() == true && movingFoward() == true){
-      moveMotors();//move the motors
+      if(movingFoward() == false && inQuadrantThree() == true){
+        determineMotorStrength();//determine motorStrength
+      }
+      //check to see if its okay to move motors
+      if(inMotorTurnOnZone() == true && movingFoward() == true){
+        moveMotors();//move the motors
+      } 
     }
   }
 
-  while(accelOffline() ==true){//if accel isn't online do time based pushing
-    motorStrength = DEFAULT_MOTOR_STRENGTH;
-    moveMotors();//move Ava
-
-    //this delay is assuming that it takes 2 seconds for ava to return
-    //back to -45 in quadrant 3 after being pushed forward
-    delay(2000);
-  }
 
   //delay(1000);
 
   //Serial.print(rollF);
   //Serial.print("/");
   //Serial.println(pitchF);
-
+  
 }
 
 
 
 //With the settings above, this IRS will trigger each 500ms.
 ISR(TIMER1_COMPA_vect){
-  cli();//disable all interrupts
+  //cli();//disable all interrupts
 
   secTick += 1;//increment tick counter
-
+  Serial.println(secTick);
   //Resolution is 0.5 seonds
   if(secTick >= 50){//want the counter to go up to 50 so that at least a second has passed
     secCounter +=0.5;//increment second's counter
@@ -460,17 +517,16 @@ ISR(TIMER1_COMPA_vect){
   if(secCounter == swingPeriod){
 
     secCounter = 0;//reset second's counter
-    disableMotorInterrupt();
-    sei();
+    //disableMotorInterrupt();
+    //sei();
     moveMotors();
-    cli();
-    enableMotorInterrupt();
+    //cli();
+    //enableMotorInterrupt();
   }
 
-  sei();//re-enable all interrupts
+  //sei();//re-enable all interrupts
 
 }
-
 
 
 
