@@ -16,6 +16,8 @@
 #include <time.h>
 
 
+const int CLOCK_SPEED = 16000000;
+
 // defines pins numbers
 const short int masterPin = 2;
 const short int stepPin = 3;
@@ -41,6 +43,7 @@ const int maxTurnOnAngle = -15;
 //ACCELEROMETER TEST VARIABLES  
 const int ACCEL_TEST_NUM = 200;
 const int MAX_ACCEL_FAILS = ACCEL_TEST_NUM/3;
+const int startUpPositionCheckTime = 10;//(unit: seconds) how low to check Ava is in a valid startup posiiton.
 int accelCounter = 0;//this variable counts to ACCEL_TEST_NUM in accelOffline
 int accelFailCounter = 0;//this variable increments/resets in accelOffline
 bool accelStartupCheckResult;
@@ -180,7 +183,32 @@ void getOrientation(){
   getAccel();
   getAngle();
   getRollAndPitch();
+}
+
+
+
+//this function is used to determine if the
+//the acceleteromter is in quadrant 3
+//of the unit circle
+//this maps to being between 0 and -90
+bool inQuadrantThree(){
+  if(rollF <= 0 && rollF > -90){//if in angle range
+    return true; 
   }
+
+  return false;
+}
+
+//this function is used to determine if the
+//the acceleteromter is in quadrant 4
+//of the unit circle
+//this maps to being between 0 and 90
+bool inQuadrantFour(){
+  if(rollF > 0 && rollF <= 90){//if in angle range
+    return true;
+  }
+  return false;//else return false
+}
 
 //determines if motor is in correct region to turn on.
 //basically if it's in quadrant 4 of pi circle, its fine to move.
@@ -215,6 +243,54 @@ bool movingFoward(){
 
 }
 
+
+//function for determining if acceleteromet is offline
+//haven't worked out the logic for it yet
+bool accelOffline(){
+  accelCounter+=1;//increment Accelerometer Test counter
+  
+  if(accelCounter == ACCEL_TEST_NUM){
+    accelCounter = 0;//reset the test counter
+    accelFailCounter = 0;//reset the fail counter
+  }
+
+
+  if(xAngle = 0 && yAngle == 0 && zAngle == 0){
+    accelFailCounter +=1;
+  }
+  if(accelFailCounter > accelCounter || accelFailCounter >= MAX_ACCEL_FAILS){
+    return false;
+  }
+
+  return true;
+}
+
+
+
+//this function should only be used when the accelrometer is being used
+//when the masterPin goes high. Wait a determined amount of time to make sure that
+//Ava is in a safe startup position
+bool accelStartupPositionCheck(){
+
+  int validCounter = 0;//counter keep track of how many times Ava is in valid angle startup range
+  int testNum = 1000;//counter max
+  int passNum = testNum*0.95;//counter must reach this value to pass the test
+
+  for(int i =0;i<testNum;i++){
+    if(rollF > -15 && rollF < 15){//in valid range
+          validCounter+=1;
+    }
+
+    //return true if Ava is deemed to be in a good position
+    if(validCounter >= passNum){
+      return true;
+    }
+  }
+
+  return false;//by default
+}
+
+
 //use to check to see if the accelerometer is behaving corretly on startup
 //if the accelerometer returns valid values X NUMBER OF times,
 //its fine to drive the motors through accelerometer (so return true)
@@ -223,22 +299,16 @@ bool movingFoward(){
 //returns true by default
 bool checkAccelStartup(){
 
-  int numOfFails = 0;
-  for(int i =0;i<ACCEL_TEST_NUM;i++){
-    getOrientation();
-    if(xAngle == 0 && yAngle == 0 && zAngle == 0){
-        numOfFails +=1;//increment the number of fails that have occured
-    }
-
-    //fails if a third of the tests fail
-    if(numOfFails >= MAX_ACCEL_FAILS){
-        return false;
-    }
+  //if the accelerometer isnt offline and Ava is rest
+  //return true
+  if(accelOffline() == true && accelStartupPositionCheck() ==true){
+    return true;
   }
 
-  return true;
-
+  return false;
 }
+
+
 
 //setup Motors
 void setupMotors() {
@@ -337,52 +407,121 @@ void moveMotors(){
 
 }
 
-//this function is used to determine if the
-//the acceleteromter is in quadrant 4
-//of the unit circle
-//this maps to being between 0 and 90
-bool inQuadrantFour(){
-  if(rollF > 0 && rollF <= 90){//if in angle range
-    return true;
-  }
-  return false;//else return false
+
+
+
+//push ava based on what angle she currently is
+void pushAvaAccel(){
+      getAccel();//update acceleration values
+      getAngle();//update angle values
+      getRollAndPitch();//get roll and pitch values
+
+
+      if(movingFoward() == false && inQuadrantThree() == true){
+        determineMotorStrength();//determine motorStrength
+      }
+      //check to see if its okay to move motors
+      if(inMotorTurnOnZone() == true && movingFoward() == true){
+        moveMotors();//move the motors
+      } 
+
 }
 
-//this function is used to determine if the
-//the acceleteromter is in quadrant 3
-//of the unit circle
-//this maps to being between 0 and -90
-bool inQuadrantThree(){
-  if(rollF <= 0 && rollF > -90){//if in angle range
-    return true; 
+
+//pushes Ava every few seconds
+void pushAvaTime(){
+    moveMotors();
+    delay(swingPeriod);
+}
+
+//returns status of master Pin
+//which is a signal from the primary arduinio
+//that tells secondary adruino it can still push 
+//Ava because the timer hasn't decremented.
+bool getMasterLine(){
+
+  //return true if the pins high
+  if(digitalRead(masterPin) == HIGH){
+    return true;
   }
 
+  //return false if the pins are low
   return false;
 }
 
 
-//function for determining if acceleteromet is offline
-//haven't worked out the logic for it yet
-bool accelOffline(){
-  accelCounter+=1;//increment Accelerometer Test counter
-  
-  if(accelCounter == ACCEL_TEST_NUM){
-    accelCounter = 0;//reset the test counter
-    accelFailCounter = 0;//reset the fail counter
-  }
 
 
-  if(xAngle = 0 && yAngle == 0 && zAngle == 0){
-    accelFailCounter +=1;
-  }
-  if(accelFailCounter > accelCounter || accelFailCounter >= MAX_ACCEL_FAILS){
-    return false;
+//sets everything up
+//uses accelWorks() function to determine how motors
+//should be triggered
+void setup() {
+  Serial.begin(9600); // Initiate serial communication for printing the results on the Serial monitor
+
+  //setupLED();//setup LEDs
+  setupAccel();//setup acceleterometer
+  accelStartupCheckResult = checkAccelStartup();
+
+  if(accelStartupCheckResult == false){
+    setupMotors();//setup motors
+    motorTimerSetup();
   }
 
-  return true;
+  else{
+    //do nothing else for setting up
+    //if Accel works
+  }
+
 }
 
-//USED THIS FOR TRIGGERING SEGMENT DISPLAY
+
+void loop() {
+
+  //moveMotors();
+
+  //functionality for how to move Ava when the acceleomter is working
+  if(accelStartupCheckResult == true){
+    while(getMasterLine() == true){
+      //gets accel, angles, roll/pitch
+      getOrientation();
+
+      Serial.print("X angle: ");
+      Serial.print(xAngle);
+      
+      Serial.print(" Y angle: ");
+      Serial.print(yAngle);
+      
+      Serial.print(" Z angle: ");
+      Serial.println(zAngle);
+
+      //Serial.print(rollF);
+      //Serial.print("/");
+      //Serial.println(pitchF);
+  
+      pushAvaAccel();
+    }
+  }
+
+  //if it is determined accelerometer doesn't work
+  //push Ava using time based pushing
+  if(accelStartupCheckResult == false){
+    while(getMasterLine()== true){
+      pushAvaTime();
+    }
+  }
+
+
+  //delay(1000);
+
+
+  
+}
+
+
+
+
+
+
 //THIS IS USING TIMER0
 //16 bit timer
 void motorTimerSetup() {
@@ -424,78 +563,6 @@ void enableMotorInterrupt(){
 
 
 
-//sets everything up
-//uses accelWorks() function to determine how motors
-//should be triggered
-void setup() {
-  Serial.begin(9600); // Initiate serial communication for printing the results on the Serial monitor
-
-  //setupLED();//setup LEDs
-  setupAccel();//setup acceleterometer
-  accelStartupCheckResult = checkAccelStartup();
-
-  if(accelStartupCheckResult == false){
-    setupMotors();//setup motors
-    motorTimerSetup();
-  }
-
-  else{
-    //do nothing else for setting up
-    //if Accel works
-  }
-
-}
-
-
-
-void loop() {
-
-  //moveMotors();
-
-  
-  //gets accel, angles, roll/pitch
-  getOrientation();
-
-  Serial.print("X angle: ");
-  Serial.print(xAngle);
-  
-  Serial.print(" Y angle: ");
-  Serial.print(yAngle);
-  
-  Serial.print(" Z angle: ");
-  Serial.println(zAngle);
-  
-
-
-
-  //functionality for how to move Ava when the acceleomter is working
-
-  if(accelStartupCheckResult == true){
-    while(accelOffline() == false){//if accel is online do angle based pushing
-
-      getAccel();//update acceleration values
-      getAngle();//update angle values
-      getRollAndPitch();//get roll and pitch values
-
-
-      if(movingFoward() == false && inQuadrantThree() == true){
-        determineMotorStrength();//determine motorStrength
-      }
-      //check to see if its okay to move motors
-      if(inMotorTurnOnZone() == true && movingFoward() == true){
-        moveMotors();//move the motors
-      } 
-    }
-  }
-
-
-  //delay(1000);
-
-  //Serial.print(rollF);
-  //Serial.print("/");
-  //Serial.println(pitchF);
-  
-}
 
 
 
