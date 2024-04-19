@@ -462,10 +462,12 @@ void setup() {
   setupAccel();//setup acceleterometer
   accelStartupCheckResult = checkAccelStartup();
 
-  if(accelStartupCheckResult == false){
+/*  //this is the motor setup for interrupts
+    //not using it right now
+if(accelStartupCheckResult == false){
     setupMotors();//setup motors
     motorTimerSetup();
-  }
+  }*/
 
   else{
     //do nothing else for setting up
