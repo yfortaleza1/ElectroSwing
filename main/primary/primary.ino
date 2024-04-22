@@ -309,6 +309,8 @@ void printStaticMessage(){
 	lcd.setCursor(0,2);
 	lcd.print("****");
 
+	// current time is displayed via updateTime() between these cursors!
+
 	lcd.setCursor(15,2);
 	lcd.print(" ****");
 
