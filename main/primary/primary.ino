@@ -207,7 +207,7 @@ void stopTime(){
 //setup button pins
 void buttonSetup(){
 	for (int i=0; i < 4; i++){
-	pinMode(buttonPins[i], INPUT_PULLUP); //set segment and DP pins to output
+		pinMode(buttonPins[i], INPUT_PULLUP); //set segment and DP pins to output
 	}
 	pinMode(masterPin, OUTPUT);
 	digitalWrite(masterPin, LOW);
@@ -231,7 +231,6 @@ void clearTimer(){
 //Function decrements timer by 1 SECOND
 //THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
 void decrementTime(){
-	Serial.println("AH YOU PUSHED DECREMENT :0 +++++++++++++ ");
 	noInterrupts(); //Disable interrupts
 
 	if(seconds > 0){
@@ -266,7 +265,6 @@ void decrementPresetTime(){ //This function will only be called when the countdo
 }
 
 void incrementTime(){
-    Serial.println("AH YOU PUSHED INCREMENT :0 +++++++++++++ ");
     noInterrupts(); //Disable interrupts
 	
 	if(isAtStartup){
