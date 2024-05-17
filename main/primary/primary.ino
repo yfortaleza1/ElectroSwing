@@ -1,7 +1,8 @@
 /*
 Name: primary.ino
-Authors: Marc Conn, Yoel Fortaleza, Jess Turner
-Date: March 27, 2024 - April 6, 2024
+Authors: Marc Conn
+(contributers - Yoel Fortaleza, Jess Turner)
+Date: 3/27-4/3 (planning on changing this current code to be LCD display rather than seven segment)
 Description: 
 This file will control the timing for the swing system.
 Todo: use master pin to signal to secondary that it can do its logic. 
@@ -33,8 +34,6 @@ volatile bool timeIsSet = false;
 // Global variables for debounce
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
-unsigned long incrementPressStartTime = 0; //Time when the increment button was pressed
-
 
 // Variables to store the button states (this is for reading debounces)
 bool lastIncrementButtonState = HIGH;
@@ -42,7 +41,6 @@ bool lastDecrementButtonState = HIGH;
 bool lastStartButtonState = HIGH;
 bool lastStopButtonState = HIGH;
 bool lastClearButtonState = HIGH;
-bool incrementButtonPressed = false; //Whenever the increment button is pressed
 
 //Initialize LCD
 LiquidCrystal_I2C lcd(0x27, 20, 4); //Set LCD address for 16 chars and 2 line display (need to check address of COM port)
@@ -94,34 +92,6 @@ void loop() {
 	bool currentClearState = digitalRead(clearPin);
 
     unsigned long currentMillis = millis();
-
-	
-	/*
-	* Logic for holding increment button for 3 seconds == clear timer
-	*/
-	{
-	//Checking if the increment button is initially pressed
-	if(currentIncrementState == LOW &&! incrementButtonPressed){
-		incrementPressStartTime = millis(); //Record  time of the button was pressed
-		incrementButtonPressed = true;
-	}else if(currentIncrementState == HIGH && incrementButtonPressed){
-		//Button was released before 3 seconds
-		incrementButtonPressed = false;
-	}
-
-	//Check if button has been pressed for more than 3 seconds
-	if(incrementButtonPressed && (millis() - incrementButtonPressed > 3000)){
-		//Clear timer
-		clearTimer();
-		incrementButtonPressed = false; // Reset flag since long press has been handled
-	}
-
-	//Update last known state for the increment button
-	lastIncrementButtonState = currentIncrementState; 
-
-	}
-
-
 
     // Check each button for a state change from HIGH to LOW (button press)
     if (currentIncrementState != lastIncrementButtonState) {
@@ -207,7 +177,7 @@ void stopTime(){
 //setup button pins
 void buttonSetup(){
 	for (int i=0; i < 4; i++){
-		pinMode(buttonPins[i], INPUT_PULLUP); //set segment and DP pins to output
+	pinMode(buttonPins[i], INPUT_PULLUP); //set segment and DP pins to output
 	}
 	pinMode(masterPin, OUTPUT);
 	digitalWrite(masterPin, LOW);
@@ -231,6 +201,7 @@ void clearTimer(){
 //Function decrements timer by 1 SECOND
 //THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
 void decrementTime(){
+	Serial.println("AH YOU PUSHED DECREMENT :0 +++++++++++++ ");
 	noInterrupts(); //Disable interrupts
 
 	if(seconds > 0){
@@ -264,22 +235,19 @@ void decrementPresetTime(){ //This function will only be called when the countdo
     updateTime();
 }
 
-void incrementTime(){
-    noInterrupts(); //Disable interrupts
-	
-	if(isAtStartup){
-		minutes = 0;
-		isAtStartup = false;
-	}else{
-		minutes++;
-	}
-
-	if(minutes >= 100){ //Check if minutes exceed 99
-		minutes = 0;
-	}
-	interrupts();
-	timeIsSet = true;
-	updateTime();
+void incrementTime() {
+    noInterrupts(); // Disable interrupts
+    if (isAtStartup) {
+        minutes = 0; // Initialize minutes if it's at startup
+        isAtStartup = false;
+    } else {
+        if (minutes < 20) { // Only increment if below 20 minutes
+            minutes++;
+        }
+    }
+    interrupts();
+    timeIsSet = true; // Mark that time has been set
+    updateTime(); // Update the display
 }
 
 void updateTime(){
@@ -307,12 +275,9 @@ void printStaticMessage(){
 	lcd.setCursor(0,2);
 	lcd.print("****");
 
-	// current time is displayed via updateTime() between these cursors!
-
 	lcd.setCursor(15,2);
 	lcd.print(" ****");
 
 	lcd.setCursor(0,3);
 	lcd.print("********************");
 }
-
