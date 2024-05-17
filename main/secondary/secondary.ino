@@ -53,7 +53,7 @@ bool accelStartupCheckResult;
 //using the microsecondsDelay function
 //valid min is 250
 //valid max is 10000
-float motorStrength = 7000;
+float motorStrength = 8000; // tried 7000, motor not turning but making noise..
 
 
 //ANGULAR MATH VARIABLES
@@ -375,7 +375,7 @@ void moveMotors(){
    }*/
 
    //else{
-
+      // Serial.println("Top of moveMotors()");
       digitalWrite(enPin, LOW);//allows the motor to move
 
       digitalWrite(dirPin, HIGH); // Enables the motor to move in a particular direction
@@ -404,7 +404,7 @@ void moveMotors(){
    //}
 
     digitalWrite(enPin, HIGH);//prevents the motor from moving
-
+    // Serial.println("Bottom of moveMotors()");
 }
 
 
@@ -430,6 +430,7 @@ void pushAvaAccel(){
 
 //pushes Ava every few seconds
 void pushAvaTime(){
+    // Serial.println("Inside pushAvaTime.");
     moveMotors();
     delay(swingPeriod);
 }
@@ -461,7 +462,7 @@ void setup() {
   //setupLED();//setup LEDs
   setupAccel();//setup acceleterometer
   accelStartupCheckResult = checkAccelStartup();
-
+  setupMotors();
 /*  //this is the motor setup for interrupts
     //not using it right now
 if(accelStartupCheckResult == false){
@@ -469,10 +470,10 @@ if(accelStartupCheckResult == false){
     motorTimerSetup();
   }*/
 
-  else{
+  // else{
     //do nothing else for setting up
     //if Accel works
-  }
+  // }
 
 }
 
@@ -482,36 +483,36 @@ void loop() {
   //moveMotors();
 
   //functionality for how to move Ava when the acceleomter is working
-  if(accelStartupCheckResult == true){
-    while(getMasterLine() == true){
-      //gets accel, angles, roll/pitch
-      getOrientation();
+  // if(accelStartupCheckResult == true){
+  //   while(getMasterLine() == true){
+  //     //gets accel, angles, roll/pitch
+  //     getOrientation();
 
-      Serial.print("X angle: ");
-      Serial.print(xAngle);
+  //     Serial.print("X angle: ");
+  //     Serial.print(xAngle);
       
-      Serial.print(" Y angle: ");
-      Serial.print(yAngle);
+  //     Serial.print(" Y angle: ");
+  //     Serial.print(yAngle);
       
-      Serial.print(" Z angle: ");
-      Serial.println(zAngle);
+  //     Serial.print(" Z angle: ");
+  //     Serial.println(zAngle);
 
-      //Serial.print(rollF);
-      //Serial.print("/");
-      //Serial.println(pitchF);
+  //     //Serial.print(rollF);
+  //     //Serial.print("/");
+  //     //Serial.println(pitchF);
   
-      pushAvaAccel();
-    }
-  }
+  //     pushAvaAccel();
+  //   }
+  // }
 
-  //if it is determined accelerometer doesn't work
-  //push Ava using time based pushing
-  if(accelStartupCheckResult == false){
-    while(getMasterLine()== true){
-      pushAvaTime();
-    }
-  }
-
+  // //if it is determined accelerometer doesn't work
+  // //push Ava using time based pushing
+  // if(accelStartupCheckResult == false){
+  //   while(getMasterLine()== true){
+  //     pushAvaTime();
+  //   }
+  // }
+  pushAvaTime();
 
   //delay(1000);
 
