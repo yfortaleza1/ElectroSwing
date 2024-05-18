@@ -235,6 +235,7 @@ void decrementTime(){
 }
 
 void decrementPresetTime(){ //This function will only be called when the countdown is stalled/stopped
+	Serial.println("AH YOU PUSHED DECREMENT :0 +++++++++++++ ");
 	noInterrupts(); // Disable interrupts
     // Calculate the total time in seconds
     int totalTimeInSeconds = minutes * 60 + seconds;
@@ -255,6 +256,7 @@ void decrementPresetTime(){ //This function will only be called when the countdo
 }
 
 void incrementTime() {
+	Serial.println("AH YOU PUSHED INCREMENT :0 +++++++++++++ ");
     noInterrupts(); // Disable interrupts
     if (isAtStartup) {
         minutes = 0; // Initialize minutes if it's at startup
