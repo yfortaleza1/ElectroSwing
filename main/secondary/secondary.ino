@@ -26,7 +26,7 @@ const short int enPin = 5;
 const short int anglePins[] = {6, 7, 8, 9, 10, 11, 12, 13};
 
 // INCREASE VALUE BY 50 TO GET A QUATER CIRCLE OF MOTION AT MOTOR STRENGTH 965
-const int SPIN_TIME = 400; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
+const int SPIN_TIME = 10000; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
 const int MAX_ANGLE = -45;
 
 const int ADXL345 = 0x53; // The ADXL345 sensor I2C address
@@ -53,7 +53,7 @@ bool accelStartupCheckResult;
 //using the microsecondsDelay function
 //valid min is 250
 //valid max is 10000
-float motorStrength = 8000; // tried 7000, motor not turning but making noise..
+float motorStrength = 250; // tried 7000, motor not turning but making noise..
 
 
 //ANGULAR MATH VARIABLES
@@ -599,6 +599,5 @@ ISR(TIMER1_COMPA_vect){
   //sei();//re-enable all interrupts
 
 }
-
 
 
