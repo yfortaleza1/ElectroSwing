@@ -20,9 +20,8 @@ const short int incrementPin = 11;
 const short int decrementPin = 10;
 const short int startPin = 2; //Interrupt capable pin
 const short int stopPin = 3; //Interrupt capable pin
-const short int clearPin = 4;
 const short int masterPin = 12;
-const short int buttonPins[] = {incrementPin, decrementPin, startPin, stopPin, clearPin};//used for buttons 
+const short int buttonPins[] = {incrementPin, decrementPin, startPin, stopPin};//used for buttons 
 
 //Define global timer variables
 volatile int minutes = 0;
@@ -41,7 +40,6 @@ bool lastIncrementButtonState = HIGH;
 bool lastDecrementButtonState = HIGH;
 bool lastStartButtonState = HIGH;
 bool lastStopButtonState = HIGH;
-bool lastClearButtonState = HIGH;
 bool stopButtonPressed = false;
 
 //Initialize LCD
@@ -91,7 +89,6 @@ void loop() {
     bool currentDecrementState = digitalRead(decrementPin);
     bool currentStartState = digitalRead(startPin);
     bool currentStopState = digitalRead(stopPin);
-	bool currentClearState = digitalRead(clearPin);
 
     unsigned long currentMillis = millis();
 
@@ -105,7 +102,7 @@ void loop() {
     }
 
     // Check if the button has been pressed for more than 3 seconds
-    if (stopButtonPressed && (currentMillis - stopPressStartTime >= 3000)) {
+    if (stopButtonPressed && (currentMillis - stopPressStartTime >= 1000)) {
         // Clear timer
         clearTimer();
         stopButtonPressed = false; // Reset the flag since the long press has been handled
@@ -141,19 +138,13 @@ void loop() {
         lastDebounceTime = currentMillis; // Update the debounce timer
     }
 
-	if (currentClearState != lastClearButtonState) {
-        if (currentMillis - lastDebounceTime > debounceDelay && currentClearState == LOW) {
-            clearTimer();
-        }
-        lastDebounceTime = currentMillis; // Update the debounce timer
-    }
+
 
     // Update the last known states
     lastIncrementButtonState = currentIncrementState;
     lastDecrementButtonState = currentDecrementState;
     lastStartButtonState = currentStartState;
     lastStopButtonState = currentStopState;
-	lastClearButtonState = currentClearState;
 
 }
 
@@ -220,7 +211,6 @@ void clearTimer(){
 //Function decrements timer by 1 SECOND
 //THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
 void decrementTime(){
-	Serial.println("AH YOU PUSHED DECREMENT :0 +++++++++++++ ");
 	noInterrupts(); //Disable interrupts
 
 	if(seconds > 0){
@@ -235,7 +225,6 @@ void decrementTime(){
 }
 
 void decrementPresetTime(){ //This function will only be called when the countdown is stalled/stopped
-	Serial.println("AH YOU PUSHED DECREMENT :0 +++++++++++++ ");
 	noInterrupts(); // Disable interrupts
     // Calculate the total time in seconds
     int totalTimeInSeconds = minutes * 60 + seconds;
@@ -256,7 +245,6 @@ void decrementPresetTime(){ //This function will only be called when the countdo
 }
 
 void incrementTime() {
-	Serial.println("AH YOU PUSHED INCREMENT :0 +++++++++++++ ");
     noInterrupts(); // Disable interrupts
     if (isAtStartup) {
         minutes = 0; // Initialize minutes if it's at startup
