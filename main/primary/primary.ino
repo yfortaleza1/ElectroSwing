@@ -113,6 +113,7 @@ void loop() {
     if (currentIncrementState != lastIncrementButtonState) {
         if (currentMillis - lastDebounceTime > debounceDelay && currentIncrementState == LOW) {
             incrementTime();
+            Serial.println("Increment");
         }
         lastDebounceTime = currentMillis; // Update the debounce timer
     }
@@ -120,6 +121,7 @@ void loop() {
     if (currentDecrementState != lastDecrementButtonState) {
         if (currentMillis - lastDebounceTime > debounceDelay && currentDecrementState == LOW) {
             decrementPresetTime();
+            Serial.println("Increment");
         }
         lastDebounceTime = currentMillis; // Update the debounce timer
     }
@@ -127,6 +129,7 @@ void loop() {
     if (currentStartState != lastStartButtonState) {
         if (currentMillis - lastDebounceTime > debounceDelay && currentStartState == LOW) {
             startTime();
+            Serial.println("Increment");
         }
         lastDebounceTime = currentMillis; // Update the debounce timer
     }
@@ -134,6 +137,7 @@ void loop() {
     if (currentStopState != lastStopButtonState) {
         if (currentMillis - lastDebounceTime > debounceDelay && currentStopState == LOW) {
             stopTime();
+            Serial.println("Increment");
         }
         lastDebounceTime = currentMillis; // Update the debounce timer
     }
