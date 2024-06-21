@@ -1,7 +1,7 @@
 /*
 Name: primary.ino
-Authors: Yoel Fortaleza
-(contributers - Marc Conn, Jess Turner)
+Authors: Marc Conn
+(contributers - Yoel Fortaleza, Jess Turner)
 Date: 3/27-4/3 (planning on changing this current code to be LCD display rather than seven segment)
 Description: 
 This file will control the timing for the swing system.
@@ -20,8 +20,9 @@ const short int incrementPin = 11;
 const short int decrementPin = 10;
 const short int startPin = 2; //Interrupt capable pin
 const short int stopPin = 3; //Interrupt capable pin
+const short int clearPin = 4;
 const short int masterPin = 12;
-const short int buttonPins[] = {incrementPin, decrementPin, startPin, stopPin};//used for buttons 
+const short int buttonPins[] = {incrementPin, decrementPin, startPin, stopPin, clearPin};//used for buttons
 
 //Define global timer variables
 volatile int minutes = 0;
@@ -33,14 +34,13 @@ volatile bool timeIsSet = false;
 // Global variables for debounce
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
-unsigned long stopPressStartTime = 0; //Time when increment button is pressed
 
 // Variables to store the button states (this is for reading debounces)
 bool lastIncrementButtonState = HIGH;
 bool lastDecrementButtonState = HIGH;
 bool lastStartButtonState = HIGH;
 bool lastStopButtonState = HIGH;
-bool stopButtonPressed = false;
+bool lastClearButtonState = HIGH;
 
 //Initialize LCD
 LiquidCrystal_I2C lcd(0x27, 20, 4); //Set LCD address for 16 chars and 2 line display (need to check address of COM port)
@@ -89,31 +89,14 @@ void loop() {
     bool currentDecrementState = digitalRead(decrementPin);
     bool currentStartState = digitalRead(startPin);
     bool currentStopState = digitalRead(stopPin);
+	bool currentClearState = digitalRead(clearPin);
 
     unsigned long currentMillis = millis();
-
-	// Check if the stop button is initially pressed
-    if (currentStopState == HIGH && !stopButtonPressed) {
-        stopPressStartTime = currentMillis; // Record the time when the button was pressed
-        stopButtonPressed = true;
-    } else if (currentStopState == LOW && stopButtonPressed) {
-        // Button was released before 3 seconds
-        stopButtonPressed = false;
-    }
-
-    // Check if the button has been pressed for more than 3 seconds
-    if (stopButtonPressed && (currentMillis - stopPressStartTime >= 1000)) {
-        // Clear timer
-        clearTimer();
-        stopButtonPressed = false; // Reset the flag since the long press has been handled
-    }
-	
 
     // Check each button for a state change from HIGH to LOW (button press)
     if (currentIncrementState != lastIncrementButtonState) {
         if (currentMillis - lastDebounceTime > debounceDelay && currentIncrementState == LOW) {
             incrementTime();
-            Serial.println("Increment");
         }
         lastDebounceTime = currentMillis; // Update the debounce timer
     }
@@ -121,7 +104,6 @@ void loop() {
     if (currentDecrementState != lastDecrementButtonState) {
         if (currentMillis - lastDebounceTime > debounceDelay && currentDecrementState == LOW) {
             decrementPresetTime();
-            Serial.println("Increment");
         }
         lastDebounceTime = currentMillis; // Update the debounce timer
     }
@@ -129,26 +111,30 @@ void loop() {
     if (currentStartState != lastStartButtonState) {
         if (currentMillis - lastDebounceTime > debounceDelay && currentStartState == LOW) {
             startTime();
-            Serial.println("Increment");
         }
         lastDebounceTime = currentMillis; // Update the debounce timer
     }
 
     if (currentStopState != lastStopButtonState) {
-        if (currentMillis - lastDebounceTime > debounceDelay && currentStopState == LOW) {
+        if (currentMillis - lastDebounceTime > debounceDelay && currentStopState == HIGH) {
             stopTime();
-            Serial.println("Increment");
         }
         lastDebounceTime = currentMillis; // Update the debounce timer
     }
 
-
+	if (currentClearState != lastClearButtonState) {
+        if (currentMillis - lastDebounceTime > debounceDelay && currentClearState == HIGH) {
+            clearTimer();
+        }
+        lastDebounceTime = currentMillis; // Update the debounce timer
+    }
 
     // Update the last known states
     lastIncrementButtonState = currentIncrementState;
     lastDecrementButtonState = currentDecrementState;
     lastStartButtonState = currentStartState;
     lastStopButtonState = currentStopState;
+	lastClearButtonState = currentClearState;
 
 }
 
@@ -215,6 +201,7 @@ void clearTimer(){
 //Function decrements timer by 1 SECOND
 //THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
 void decrementTime(){
+	Serial.println("AH YOU PUSHED DECREMENT :0 +++++++++++++ ");
 	noInterrupts(); //Disable interrupts
 
 	if(seconds > 0){
