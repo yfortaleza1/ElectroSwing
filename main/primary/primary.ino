@@ -1,7 +1,7 @@
 /*
 Name: primary.ino
-Authors: Marc Conn
-(contributers - Yoel Fortaleza, Jess Turner)
+Authors: Yoel Fortaleza
+(contributers - Marc Conn, Jess Turner)
 Date: 3/27-4/3 (planning on changing this current code to be LCD display rather than seven segment)
 Description: 
 This file will control the timing for the swing system.
