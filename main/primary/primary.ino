@@ -20,7 +20,6 @@ const short int incrementPin = 11;
 const short int decrementPin = 10;
 const short int startPin = 2; //Interrupt capable pin
 const short int stopPin = 3; //Interrupt capable pin
-const short int clearPin = 4;
 const short int masterPin = 12;
 const short int buttonPins[] = {incrementPin, decrementPin, startPin, stopPin, clearPin};//used for buttons
 
@@ -34,6 +33,7 @@ volatile bool timeIsSet = false;
 // Global variables for debounce
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
+unsigned long clearDelay = 500; //the extra time for a clear to be registered
 
 // Variables to store the button states (this is for reading debounces)
 bool lastIncrementButtonState = HIGH;
@@ -89,8 +89,6 @@ void loop() {
     bool currentDecrementState = digitalRead(decrementPin);
     bool currentStartState = digitalRead(startPin);
     bool currentStopState = digitalRead(stopPin);
-	bool currentClearState = digitalRead(clearPin);
-
     unsigned long currentMillis = millis();
 
     // Check each button for a state change from HIGH to LOW (button press)
@@ -116,14 +114,7 @@ void loop() {
     }
 
     if (currentStopState != lastStopButtonState) {
-        if (currentMillis - lastDebounceTime > debounceDelay && currentStopState == HIGH) {
-            stopTime();
-        }
-        lastDebounceTime = currentMillis; // Update the debounce timer
-    }
-
-	if (currentClearState != lastClearButtonState) {
-        if (currentMillis - lastDebounceTime > debounceDelay && currentClearState == HIGH) {
+        if (currentMillis - lastDebounceTime > debounceDelay + clearDelay && currentStopState == LOW) {
             clearTimer();
         }
         lastDebounceTime = currentMillis; // Update the debounce timer
@@ -134,7 +125,6 @@ void loop() {
     lastDecrementButtonState = currentDecrementState;
     lastStartButtonState = currentStartState;
     lastStopButtonState = currentStopState;
-	lastClearButtonState = currentClearState;
 
 }
 
@@ -169,6 +159,7 @@ void stopTime(){
 	if(timeIsSet){
 		countDownActive = false;
 		Timer1.stop(); //Stop the timer interrupt;
+    Serial.println("Timer Stopped");
 		digitalWrite(masterPin, LOW);
 	}
 }
@@ -201,7 +192,6 @@ void clearTimer(){
 //Function decrements timer by 1 SECOND
 //THIS FUNCTION WILL BE CALLED BY ISR EVERY SECOND TO GET THE TIMING RIGHT
 void decrementTime(){
-	Serial.println("AH YOU PUSHED DECREMENT :0 +++++++++++++ ");
 	noInterrupts(); //Disable interrupts
 
 	if(seconds > 0){
