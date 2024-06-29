@@ -1,7 +1,8 @@
 /*
 Name: primary.ino
-Authors: Marc Conn, Yoel Fortaleza, Jess Turner
-Date: March 27, 2024 - April 6, 2024
+Authors: Marc Conn
+(contributers - Yoel Fortaleza, Jess Turner)
+Date: 3/27-4/3 (planning on changing this current code to be LCD display rather than seven segment)
 Description: 
 This file will control the timing for the swing system.
 Todo: use master pin to signal to secondary that it can do its logic. 
@@ -21,9 +22,8 @@ const short int incrementPin = 11;
 const short int decrementPin = 10;
 const short int startPin = 2; //Interrupt capable pin
 const short int stopPin = 3; //Interrupt capable pin
-const short int clearPin = 4;
 const short int masterPin = 12;
-const short int buttonPins[] = {incrementPin, decrementPin, startPin, stopPin, clearPin};//used for buttons
+const short int buttonPins[] = {incrementPin, decrementPin, startPin, stopPin};//used for buttons
 
 //Define global timer variables
 volatile int minutes = 0;
@@ -35,8 +35,7 @@ volatile bool timeIsSet = false;
 // Global variables for debounce
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
-unsigned long incrementPressStartTime = 0; //Time when the increment button was pressed
-
+unsigned long clearDelay = 500; //the extra time for a clear to be registered
 
 // Variables to store the button states (this is for reading debounces)
 bool lastIncrementButtonState = HIGH;
@@ -44,7 +43,6 @@ bool lastDecrementButtonState = HIGH;
 bool lastStartButtonState = HIGH;
 bool lastStopButtonState = HIGH;
 bool lastClearButtonState = HIGH;
-bool incrementButtonPressed = false; //Whenever the increment button is pressed
 
 //Initialize LCD
 LiquidCrystal_I2C lcd(0x27, 20, 4); //Set LCD address for 16 chars and 2 line display (need to check address of COM port)
@@ -93,37 +91,7 @@ void loop() {
     bool currentDecrementState = digitalRead(decrementPin);
     bool currentStartState = digitalRead(startPin);
     bool currentStopState = digitalRead(stopPin);
-	bool currentClearState = digitalRead(clearPin);
-
     unsigned long currentMillis = millis();
-
-	
-	/*
-	* Logic for holding increment button for 3 seconds == clear timer
-	*/
-	{
-	//Checking if the increment button is initially pressed
-	if(currentIncrementState == LOW &&! incrementButtonPressed){
-		incrementPressStartTime = millis(); //Record  time of the button was pressed
-		incrementButtonPressed = true;
-	}else if(currentIncrementState == HIGH && incrementButtonPressed){
-		//Button was released before 3 seconds
-		incrementButtonPressed = false;
-	}
-
-	//Check if button has been pressed for more than 3 seconds
-	if(incrementButtonPressed && (millis() - incrementButtonPressed > 3000)){
-		//Clear timer
-		clearTimer();
-		incrementButtonPressed = false; // Reset flag since long press has been handled
-	}
-
-	//Update last known state for the increment button
-	lastIncrementButtonState = currentIncrementState; 
-
-	}
-
-
 
     // Check each button for a state change from HIGH to LOW (button press)
     if (currentIncrementState != lastIncrementButtonState) {
@@ -148,14 +116,7 @@ void loop() {
     }
 
     if (currentStopState != lastStopButtonState) {
-        if (currentMillis - lastDebounceTime > debounceDelay && currentStopState == LOW) {
-            stopTime();
-        }
-        lastDebounceTime = currentMillis; // Update the debounce timer
-    }
-
-	if (currentClearState != lastClearButtonState) {
-        if (currentMillis - lastDebounceTime > debounceDelay && currentClearState == LOW) {
+        if (currentMillis - lastDebounceTime > debounceDelay + clearDelay && currentStopState == LOW) {
             clearTimer();
         }
         lastDebounceTime = currentMillis; // Update the debounce timer
@@ -166,7 +127,7 @@ void loop() {
     lastDecrementButtonState = currentDecrementState;
     lastStartButtonState = currentStartState;
     lastStopButtonState = currentStopState;
-	  lastClearButtonState = currentClearState;
+
 }
 
 
@@ -197,6 +158,7 @@ void stopTime(){
 	if(timeIsSet){
 		countDownActive = false;
 		Timer1.stop(); //Stop the timer interrupt;
+    Serial.println("Timer Stopped");
 		digitalWrite(masterPin, LOW);
 	}
 }
@@ -263,23 +225,19 @@ void decrementPresetTime(){ //This function will only be called when the countdo
     updateTime();
 }
 
-// Usage: when they are setting up the swing timer, this function is called!
-void incrementTime(){
-    noInterrupts(); //Disable interrupts
-	Serial.println("AH YOU PUSHED INCREMENT :0 +++++++++++++ ");
-	if(isAtStartup){
-		minutes = 0;
-		isAtStartup = false;
-	}else{
-		minutes+=INCREMENT_MINUTES;
-	}
-
-	if(minutes >= 100){ //Check if minutes exceed 99
-		minutes = 0;
-	}
-	interrupts();
-	timeIsSet = true;
-	updateTime();
+void incrementTime() {
+    noInterrupts(); // Disable interrupts
+    if (isAtStartup) {
+        minutes = 0; // Initialize minutes if it's at startup
+        isAtStartup = false;
+    } else {
+        if (minutes < 20) { // Only increment if below 20 minutes
+            minutes++;
+        }
+    }
+    interrupts();
+    timeIsSet = true; // Mark that time has been set
+    updateTime(); // Update the display
 }
 
 void updateTime(){
@@ -313,4 +271,3 @@ void printStaticMessage(){
 	lcd.setCursor(0,3);
 	lcd.print("********************");
 }
-
