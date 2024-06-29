@@ -7,6 +7,7 @@ Jess lessons learned 6/29
 - maybe we need to push when we know she was moving backwards and now we know she is moving forward (i.e. 5 times, but with an increased sample rate.)
 
 - TODO: MAKE SURE THE PARENT ONLY STOPS THE USER IN THE FOURTH QUADRANT
+- additionally, make sure that we don't push her if she's just in the middle.
 */
 
 
@@ -41,7 +42,8 @@ float motorStrength = 5000; // tried 7000, motor not turning but making noise..
 const int SPIN_TIME = 60; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
 float swingPeriod = 1300;//desired period for swing motion  // ONLY FOR PUSH AVA TIME
 
-bool jt_debug_is_moving_forward = false; ; // only poll when we actually call movingForward in pushAva accel
+float JT_MIN_DELAY_AFTER_ACCEL_PUSH = 10; // same unit as SPIN_TIME
+bool jt_debug_is_moving_forward = false; ; // this is just to be displayed as which direction we are moving FORWARD | BACK in the debug_show_... function.
 const int jt_accel_sample_rate_microseconds = 75; //100 was og value, not trying 75 // 100 seems to read 4 values going forward, 4 values going backwards.
 const int MIN_VALID_DIRECTION_READINGS = 6; // used to be 4, but that was just a gestimate for 100micros
 
@@ -58,7 +60,7 @@ const double JT_MIN_Y_DELTA_INDICATE_MOVING = 2; // at rest the values of yDelta
 const double JT_MIN_Z_DELTA_INDICATE_MOVING = 2; 
 // <- JT Guess 4:28pm 6/29. Note: sometimes zDelta is 170-179 which must be an error. Sometimes 160
 const double JT_MIN_Z_DELTA_ERRONEOUS_READING = 150; // for some reason it thinks this is the value somtimes when it's actually moving not at all.
-// JT todo 4:24pm 6/29 - incorporating z movement as well as y for more accurate reading. Y isn't enough because it doesn't change very much.
+// (finished :D ) JT  4:24pm 6/29 - incorporating z movement as well as y for more accurate reading. Y isn't enough because it doesn't change very much.
 
 const double MIN_Y_DELTA_DURING_MOTION = 0.08; // <- 0.08 is from Marc's code morning of 6/29
 
@@ -67,13 +69,16 @@ const int MAX_ANGLE = -45;
 const int ADXL345 = 0x53; // The ADXL345 sensor I2C address
 
 //PRE-DEFINED ANGULAR VARIABLES
-const int numAngles = 7;
+
+/* These aren't being used right now currently in pushAvaAccell 7:49pm 6-29*/
+const int numAngles = 7; 
 const int angles[] = {0,15,30,45,60,75,80.95};
 const int motorStrengths[] = {400, 500, 600, 700, 800};
 const int DEFAULT_MOTOR_STRENGTH = 900;
 const int WACKY_MOTOR_STRENGTH = -1;
-const int minTurnOnAngle = 75;
-const int maxTurnOnAngle = 90;
+/* ------------------------------------------------------- */
+const int minTurnOnAngle = 75; // <====================================== ACTUALLY USED
+const int maxTurnOnAngle = 90; // <======================================= ACTUALLY USED
 
 //ACCELEROMETER TEST VARIABLES  
 const int ACCEL_TEST_NUM = 200;
@@ -480,12 +485,15 @@ void pushAvaAccel(){
 
       // still only move if we find she is STILL moving forward.
       if(movingFoward() == true && inMotorTurnOnZone() == true ){
-         moveMotors();//move the motors
-        // Serial.println("====================================== ");
-        // Serial.println("|                                    | ");
-        // Serial.println("============= PUSH                   |  ");
-        // Serial.println("|                                    | ");
-        // Serial.println("======================================");
+         //moveMotors();//move the motors
+        Serial.println("====================================== ");
+        Serial.println("|                                    | ");
+        Serial.println("============= PUSH                   |  ");
+        Serial.println("|                                    | ");
+        Serial.println("======================================");
+
+        // JT 7:37pm 6-29 maybe if we ensure it doesn't push again for a moment that'll fix that :0
+        delay(JT_MIN_DELAY_AFTER_ACCEL_PUSH);
       } 
 
 }
@@ -575,10 +583,11 @@ void debug_display_orientation() {
   */
   Serial.print("\t\tY angle: ");
   Serial.print(yAngle);
-  //  Serial.print(" Z angle: ");
-  //  Serial.println(zAngle);
   Serial.print("\tyDelta ");
   Serial.print(yDelta);
+
+  Serial.print("\tZ angle: ");
+  Serial.print(zAngle);
 
   Serial.print("\tzDelta ");
   Serial.print(zDelta);
