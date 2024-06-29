@@ -25,8 +25,18 @@ const short int dirPin = 4;
 const short int enPin = 5;
 const short int anglePins[] = {6, 7, 8, 9, 10, 11, 12, 13};
 
+//MOTOR STRENGTH VARIABLE
+//using the microsecondsDelay function
+//valid min is 250
+//valid max is 10000
+
+//to make the motor move without being demeshed from the gears, set motor strength to at least 500
+float motorStrength = 5000; // tried 7000, motor not turning but making noise..
 // INCREASE VALUE BY 50 TO GET A QUATER CIRCLE OF MOTION AT MOTOR STRENGTH 965
-const int SPIN_TIME = 10000; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
+const int SPIN_TIME = 90; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
+float swingPeriod = 1300;//desired period for swing motion 
+
+
 const int MAX_ANGLE = -45;
 
 const int ADXL345 = 0x53; // The ADXL345 sensor I2C address
@@ -49,11 +59,6 @@ int accelFailCounter = 0;//this variable increments/resets in accelOffline
 bool accelStartupCheckResult;
 
 
-//MOTOR STRENGTH VARIABLE
-//using the microsecondsDelay function
-//valid min is 250
-//valid max is 10000
-float motorStrength = 250; // tried 7000, motor not turning but making noise..
 
 
 //ANGULAR MATH VARIABLES
@@ -67,7 +72,6 @@ int prevRoll = 0;//used in movingFoward function to determine if the swing is mo
 //Timer variables 
 int secTick = 0;//used to count up to a second in interrupt
 float secCounter = 0;//keep tracks of the number of seconds that's passed in motor timer interrupt
-float swingPeriod = 2.5;//desired period for swing motion 
 
 //used to determine if load should be pushed by angle based on timer based
 //in the setup function
@@ -377,6 +381,8 @@ void moveMotors(){
    //else{
       // Serial.println("Top of moveMotors()");
       digitalWrite(enPin, LOW);//allows the motor to move
+      digitalWrite(dirPin, LOW); // Enables the motor to move in a particular direction
+
 
       digitalWrite(dirPin, HIGH); // Enables the motor to move in a particular direction
       for (int x = 0; x < SPIN_TIME; x++)
@@ -394,16 +400,17 @@ void moveMotors(){
       
       //PUT ANOTHER MOTOR MOVE LOOP HERE IF you want
       //But for now disable motors until next function call
-      digitalWrite(dirPin, LOW); // Enables the motor to move in a particular direction
+      digitalWrite(dirPin, HIGH); // Enables the motor to move in a particular direction
 
 
       // THERE HAS TO BE AT MINIMUM A 2 SECOND DELAY, TO ENSURE THE MOTOR DOESNT MISFIRE IN THE WRONG DIRECTION
       // THERE IS SOME AMOUNT OF DELAY WHEN THE SIGNAL GOES THROUGH THE MICROSTEPPER
       // NEED TO GET GIVE SIGNALS MORE TIME TO PASS THROUGH BEFORE NEXT INSTRUCTION
-      delay(2000); // Two Second Delay
+      //delay(2000); // Two Second Delay
    //}
 
     digitalWrite(enPin, HIGH);//prevents the motor from moving
+
     // Serial.println("Bottom of moveMotors()");
 }
 
@@ -480,30 +487,32 @@ if(accelStartupCheckResult == false){
 
 void loop() {
 
-  //moveMotors();
-
+  moveMotors();
+  delay(swingPeriod);
+/*
   //functionality for how to move Ava when the acceleomter is working
-  // if(accelStartupCheckResult == true){
-  //   while(getMasterLine() == true){
-  //     //gets accel, angles, roll/pitch
-  //     getOrientation();
+  if(accelStartupCheckResult == true){
+     while(true){
+       //gets accel, angles, roll/pitch
+       getOrientation();
 
-  //     Serial.print("X angle: ");
-  //     Serial.print(xAngle);
+       Serial.print("X angle: ");
+       Serial.print(xAngle);
       
-  //     Serial.print(" Y angle: ");
-  //     Serial.print(yAngle);
+       Serial.print(" Y angle: ");
+       Serial.print(yAngle);
       
-  //     Serial.print(" Z angle: ");
-  //     Serial.println(zAngle);
+       Serial.print(" Z angle: ");
+       Serial.println(zAngle);
 
-  //     //Serial.print(rollF);
-  //     //Serial.print("/");
-  //     //Serial.println(pitchF);
+       Serial.print(rollF);
+       Serial.print("/");
+       Serial.println(pitchF);
   
-  //     pushAvaAccel();
-  //   }
-  // }
+       //pushAvaAccel();
+     }
+     
+   }*/
 
   // //if it is determined accelerometer doesn't work
   // //push Ava using time based pushing
@@ -511,8 +520,9 @@ void loop() {
   //   while(getMasterLine()== true){
   //     pushAvaTime();
   //   }
+
   // }
-  pushAvaTime();
+  //pushAvaTime();
 
   //delay(1000);
 
@@ -599,5 +609,4 @@ ISR(TIMER1_COMPA_vect){
   //sei();//re-enable all interrupts
 
 }
-
 
