@@ -37,14 +37,22 @@ const int SPIN_TIME = 90; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
 float swingPeriod = 1300;//desired period for swing motion 
 
 const int jt_accel_sample_rate_microseconds = 100; // 100 seems to read 4 values going forward, 4 values going backwards.
+const int MIN_VALID_DIRECTION_READINGS = 4;
+
 enum jt_direction_enum {
   forward = 0,
   backward = 1
 };
 int jt_forward_count = 0;
 int jt_backward_count = 0;
-jt_direction_enum jt_current_forward_or_backward_value = forward;
-const double JT_MIN_Y_DELTA_SET_MOVING = 1.0; // at rest the values of yDelta are between 0 and 0.75.
+
+jt_direction_enum jt_previous_forward_or_backward_value;
+jt_direction_enum jt_current_forward_or_backward_value; // JT sets this after waiting for the zero readings to stop (i.e. initial push).
+const double JT_MIN_Y_DELTA_INDICATE_MOVING = 1.0; // at rest the values of yDelta are between 0 and 0.75. // sometimes 1.6 out of nowhere >:(
+const double JT_MIN_Z_DELTA_INDICATE_MOVING = 1.0; 
+// <- JT Guess 4:28pm 6/29. Note: sometimes zDelta is 170-179 which must be an error.
+const double JT_MIN_Z_DELTA_ERRONEOUS_READING = 170; // for some reason it thinks this is the value somtimes when it's actually moving not at all.
+// JT todo 4:24pm 6/29 - incorporating z movement as well as y for more accurate reading. Y isn't enough because it doesn't change very much.
 
 const double MIN_Y_DELTA_DURING_MOTION = 0.08; // <- 0.08 is from Marc's code morning of 6/29
 
@@ -73,6 +81,8 @@ bool accelStartupCheckResult;
 
 float prevYAngle; // JT Note: this needs to be set inside setup so we don't calcualte a change from 0 to 80ish in the first iteration of the loop.
 float yDelta =0;
+float prevZAngle;
+float zDelta =0;
 
 //ANGULAR MATH VARIABLES
 float X_out, Y_out, Z_out;  // Outputs
@@ -179,6 +189,10 @@ void getAngle (){
     // JT: moved this here so we know that the yDelta is updated exactly when the other values are also being updated.
     yDelta = yAngle - prevYAngle;
     prevYAngle = yAngle;
+
+    zDelta = zAngle - prevZAngle;
+    prevZAngle = zAngle;
+
 }
 
 //get roll and pitch from acceleration values
@@ -264,6 +278,7 @@ bool movingFoward(){
 
   //return false to indicate load is moving back
   prevYAngle = yAngle;
+  prevZAngle = zAngle;
   return false;
 
 }
@@ -509,25 +524,29 @@ if(accelStartupCheckResult == false){
 
 }
 
+// return true if I think the swing is moving at all
+// return false if I think we still gotta wait for it to move.
+bool jt_check_is_swing_moving_at_all() {
+  getOrientation();
+  bool found_erroneous_reading_that_should_be_zero = abs(zDelta) > JT_MIN_Z_DELTA_ERRONEOUS_READING;
+  bool sufficient_motion_detected = abs(yDelta) > JT_MIN_Y_DELTA_INDICATE_MOVING && abs(zDelta) > JT_MIN_Z_DELTA_INDICATE_MOVING && ( \
+    (!found_erroneous_reading_that_should_be_zero));
+  return sufficient_motion_detected;
+}
 
 void jt_loop_til_detect_motion() {
-  bool sufficient_ydelta_motion_detected = false;
-  while (sufficient_ydelta_motion_detected == false) {
-    
-    delay(jt_accel_sample_rate_microseconds);
-    //gets accel, angles, roll/pitch
-    getOrientation();
-
+  while (jt_check_is_swing_moving_at_all() == false) {
 
     Serial.print("JT WAITING FOR MOVEMENT (yDelta = ");
     Serial.print(yDelta);
-    Serial.print("): ............ ");
+    Serial.print(") (zDelta = ");
+    Serial.print(zDelta);
+    Serial.print("):\t............ ");
 
     debug_display_orientation();
 
-    if (abs(yDelta) > JT_MIN_Y_DELTA_SET_MOVING) {
-      sufficient_ydelta_motion_detected = true;
-    }
+    delay(jt_accel_sample_rate_microseconds);
+    //gets accel, angles, roll/pitch
   }
 }
 
@@ -542,9 +561,12 @@ void debug_display_orientation() {
   Serial.print(" yDelta ");
   Serial.print(yDelta);
 
+  Serial.print(" zDelta ");
+  Serial.print(zDelta);
+
   // JT Hypothesis: apply first push. Then only move after abs( yDelta ) is greater than 1
   // ^ COME BACK TO THIS 6/29 3:30pm
-  Serial.print(" quadrant ");
+  Serial.print("\tquadrant ");
   if (inQuadrantThree()) {
     Serial.print("\tTHREE ");
   } else if (inQuadrantFour()) {
@@ -569,9 +591,27 @@ void loop() {
      // delay(10000);//wait 10 seconds 
      // ^ Marc had this morning of 6/29 to try to ignore the first readings of the accelerometer, but I (JT) have it reading them from the start currently (6/29 4pm).
      
-     // JT ADDED THIS 6/29 at 3:45pm
+     
+    // JT ADDED THIS 6/29 at 3:45pm
+    // 4:19pm moved it into the loop so that if they stop her manually, we aren't trying to read faulty acceleration values.
+    // that didn't work out tho so here it is back before the loop.
      jt_loop_til_detect_motion();
+     jt_current_forward_or_backward_value = movingForward() ? forward : backwards;
+     while (jt_forward_count < 5) {
+      if movingForward() {
+        forward_count++;
+      } else {
+        forward_count = 0;
+      }
+     }
+     jt_previous_forward_or_backward_value = backwards;
+    // JT plan:
+    // want it to go forward
+    // come back
+    // then we start applying a regular push
+
      while(true){
+      
      //while(getMasterLine()==true){
        delay(jt_accel_sample_rate_microseconds);
        //gets accel, angles, roll/pitch
