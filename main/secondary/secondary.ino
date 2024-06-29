@@ -5,6 +5,8 @@
 
 Jess lessons learned 6/29
 - maybe we need to push when we know she was moving backwards and now we know she is moving forward (i.e. 5 times, but with an increased sample rate.)
+
+- TODO: MAKE SURE THE PARENT ONLY STOPS THE USER IN THE FOURTH QUADRANT
 */
 
 
@@ -39,6 +41,7 @@ float motorStrength = 5000; // tried 7000, motor not turning but making noise..
 const int SPIN_TIME = 90; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
 float swingPeriod = 1300;//desired period for swing motion 
 
+bool jt_debug_is_moving_forward = false; ; // only poll when we actually call movingForward in pushAva accel
 const int jt_accel_sample_rate_microseconds = 75; //100 was og value, not trying 75 // 100 seems to read 4 values going forward, 4 values going backwards.
 const int MIN_VALID_DIRECTION_READINGS = 6; // used to be 4, but that was just a gestimate for 100micros
 
@@ -278,6 +281,7 @@ bool movingFoward(){
     // jt_current_forward_or_backward_value
     // JT 5:44pm thinking that we may have to also check t(if prev_direction == FORWARD )
     //return true to indicate that load is moving forward
+    jt_debug_is_moving_forward = true;
     return true;
   }
  
@@ -285,6 +289,7 @@ bool movingFoward(){
   // JT revalation 5:44pm was this the reason we were sometimes reading it was going back?!
   // prevYAngle = yAngle;
   // prevZAngle = zAngle;
+  jt_debug_is_moving_forward = false;
   return false;
 
 }
@@ -475,7 +480,7 @@ void pushAvaAccel(){
 
       // still only move if we find she is STILL moving forward.
       if(movingFoward() == true && inMotorTurnOnZone() == true ){
-        // moveMotors();//move the motors
+         // moveMotors();//move the motors
         Serial.println("====================================== ");
         Serial.println("|                                    | ");
         Serial.println("============= PUSH                   |  ");
@@ -586,10 +591,11 @@ void debug_display_orientation() {
   } else if (inQuadrantFour()) {
     Serial.print("\tfour  ");
   }
-  bool is_moving_forward = movingFoward(); // only poll once.
-  if(is_moving_forward== true){
+  
+  // DONT CALL movingForward HERE BECAUSE THAT REPOLLS THE ACCELEROMETER :0
+  if(jt_debug_is_moving_forward== true){
     Serial.println("\t| FORWARD               | ");
-  } else if(is_moving_forward== false){
+  } else if(jt_debug_is_moving_forward== false){
     Serial.println("\t|                       |                 BACK");
   }
 }
@@ -738,6 +744,7 @@ ISR(TIMER1_COMPA_vect){
 
   //once swing period is achieved move the motor
   if(secCounter == swingPeriod){
+
     secCounter = 0;//reset second's counter
     //disableMotorInterrupt();
     //sei();
