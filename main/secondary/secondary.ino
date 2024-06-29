@@ -274,7 +274,7 @@ bool movingFoward(){
   //xAngle should be getting closer to 0 if it's moving foward
   //xAngle should always have a negative value
   //so the closer xAngle is to 0, the more Ava will face up towards the sky 
-  if( (yDelta > MIN_Y_DELTA_DURING_MOTION && zAngle > 0) || (yDelta < -MIN_Y_DELTA_DURING_MOTION && zAngle < 0) && jt_check_is_swing_moving_at_all()){
+  if( jt_check_is_swing_moving_at_all() && ((yDelta > MIN_Y_DELTA_DURING_MOTION && zAngle > 0) || (yDelta < -MIN_Y_DELTA_DURING_MOTION && zAngle < 0))) {
     // jt_current_forward_or_backward_value
     // JT 5:44pm thinking that we may have to also check t(if prev_direction == FORWARD )
     //return true to indicate that load is moving forward
@@ -471,10 +471,10 @@ void pushAvaAccel(){
       }*/
 
       //check to see if its okay to move motors
-      // jt_loop_til_fully_moving_forward(); // 5:20pm last stitch effort.
+      // jt_loop_til_fully_moving_forward(); // 5:20pm last stitch effort. // moving this at 6:02 to movingFoward()
 
       // still only move if we find she is STILL moving forward.
-      if(inMotorTurnOnZone() == true && movingFoward() == true){
+      if(movingFoward() == true && inMotorTurnOnZone() == true ){
         // moveMotors();//move the motors
         Serial.println("====================================== ");
         Serial.println("|                                    | ");
@@ -654,7 +654,7 @@ void loop() {
      //while(getMasterLine()==true){
        delay(jt_accel_sample_rate_microseconds);
        //gets accel, angles, roll/pitch
-       getOrientation();
+       // getOrientation(); // my jt is swing moving at all function checks this already so i don't want to over-sample
        debug_display_orientation();
        pushAvaAccel();
      } 
