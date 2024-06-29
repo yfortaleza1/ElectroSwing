@@ -36,6 +36,17 @@ float motorStrength = 5000; // tried 7000, motor not turning but making noise..
 const int SPIN_TIME = 90; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
 float swingPeriod = 1300;//desired period for swing motion 
 
+const int jt_accel_sample_rate_microseconds = 100; // 100 seems to read 4 values going forward, 4 values going backwards.
+enum jt_direction_enum {
+  forward = 0,
+  backward = 1
+};
+int jt_forward_count = 0;
+int jt_backward_count = 0;
+jt_direction_enum jt_current_forward_or_backward_value = forward;
+const double JT_MIN_Y_DELTA_SET_MOVING = 1.0; // at rest the values of yDelta are between 0 and 0.75.
+
+const double MIN_Y_DELTA_DURING_MOTION = 0.08; // <- 0.08 is from Marc's code morning of 6/29
 
 const int MAX_ANGLE = -45;
 
@@ -60,7 +71,7 @@ bool accelStartupCheckResult;
 
 
 
-float prevYAngle = 0;
+float prevYAngle; // JT Note: this needs to be set inside setup so we don't calcualte a change from 0 to 80ish in the first iteration of the loop.
 float yDelta =0;
 
 //ANGULAR MATH VARIABLES
@@ -164,6 +175,10 @@ void getAngle (){
 
     xAngle *= 180.00;   yAngle *= 180.00;   zAngle *= 180.00;
     xAngle /= 3.141592; yAngle /= 3.141592; zAngle /= 3.141592;
+
+    // JT: moved this here so we know that the yDelta is updated exactly when the other values are also being updated.
+    yDelta = yAngle - prevYAngle;
+    prevYAngle = yAngle;
 }
 
 //get roll and pitch from acceleration values
@@ -236,13 +251,13 @@ bool inMotorTurnOnZone (){
 //if moving forwards return 1
 bool movingFoward(){
 
-  yDelta = yAngle - prevYAngle;
+  
 
   //xAngle should be getting closer to 0 if it's moving foward
   //xAngle should always have a negative value
   //so the closer xAngle is to 0, the more Ava will face up towards the sky 
-  if( (yDelta > 0.08 && zAngle > 0) || (yDelta < -0.08 && zAngle < 0)){
-    prevYAngle = yAngle;
+  if( (yDelta > MIN_Y_DELTA_DURING_MOTION && zAngle > 0) || (yDelta < -MIN_Y_DELTA_DURING_MOTION && zAngle < 0)){
+    
     //return true to indicate that load is moving forward
     return true;
   }
@@ -465,8 +480,6 @@ bool getMasterLine(){
 }
 
 
-
-
 //sets everything up
 //uses accelWorks() function to determine how motors
 //should be triggered
@@ -476,7 +489,12 @@ void setup() {
   //setupLED();//setup LEDs
   setupAccel();//setup acceleterometer
   accelStartupCheckResult = checkAccelStartup();
+  
   setupMotors();
+  if (accelStartupCheckResult == true) {
+    getOrientation(); // JT: added this 6/29 3:56pm -  set's initial prevY
+  }
+
 /*  //this is the motor setup for interrupts
     //not using it right now
 if(accelStartupCheckResult == false){
@@ -492,47 +510,75 @@ if(accelStartupCheckResult == false){
 }
 
 
+void jt_loop_til_detect_motion() {
+  bool sufficient_ydelta_motion_detected = false;
+  while (sufficient_ydelta_motion_detected == false) {
+    
+    delay(jt_accel_sample_rate_microseconds);
+    //gets accel, angles, roll/pitch
+    getOrientation();
+
+
+    Serial.print("JT WAITING FOR MOVEMENT (yDelta = ");
+    Serial.print(yDelta);
+    Serial.print("): ............ ");
+
+    debug_display_orientation();
+
+    if (abs(yDelta) > JT_MIN_Y_DELTA_SET_MOVING) {
+      sufficient_ydelta_motion_detected = true;
+    }
+  }
+}
+
+void debug_display_orientation() {
+  /*Serial.print("X angle: ");
+  Serial.print(xAngle);
+  */
+  Serial.print(" Y angle: ");
+  Serial.print(yAngle);
+  //  Serial.print(" Z angle: ");
+  //  Serial.println(zAngle);
+  Serial.print(" yDelta ");
+  Serial.print(yDelta);
+
+  // JT Hypothesis: apply first push. Then only move after abs( yDelta ) is greater than 1
+  // ^ COME BACK TO THIS 6/29 3:30pm
+  Serial.print(" quadrant ");
+  if (inQuadrantThree()) {
+    Serial.print("\tTHREE ");
+  } else if (inQuadrantFour()) {
+    Serial.print("\tfour  ");
+  }
+  if(movingFoward()== true){
+    Serial.println("\t| FORWARD               | ");
+  } else if(movingFoward()== false){
+    Serial.println("\t|                       |                 BACK");
+  }
+}
+
 void loop() {
 
   //moveMotors();
   //delay(swingPeriod);
 
   //functionality for how to move Ava when the acceleomter is working
-  if(accelStartupCheckResult == true){
-    Serial.println("Accelerometer Works");
-    delay(10000);//wait 10 seconds
+  if(accelStartupCheckResult == false) {
+     Serial.println("Accelerometer FAILED"); // JT moved this here since we have debug print statements below anyway that read the values.
+  }else {
+     // delay(10000);//wait 10 seconds 
+     // ^ Marc had this morning of 6/29 to try to ignore the first readings of the accelerometer, but I (JT) have it reading them from the start currently (6/29 4pm).
+     
+     // JT ADDED THIS 6/29 at 3:45pm
+     jt_loop_til_detect_motion();
      while(true){
      //while(getMasterLine()==true){
-       delay(100);
+       delay(jt_accel_sample_rate_microseconds);
        //gets accel, angles, roll/pitch
        getOrientation();
-
-       /*Serial.print("X angle: ");
-       Serial.print(xAngle);
-      */
-       Serial.print(" Y angle: ");
-       Serial.print(yAngle);
-      
-       Serial.print(" Z angle: ");
-       Serial.println(zAngle);
-
-       Serial.print("yDelta ");
-       Serial.println(yDelta);
-
-
-       if(movingFoward()== true){
-        Serial.println("FORWARD               | ");
-       }
-
-       else if(movingFoward()== false){
-        Serial.println("                      |                 BACK");
-       }
-
-
-  
+       debug_display_orientation();
        //pushAvaAccel();
-     }
-     
+     } 
    }
 
   // //if it is determined accelerometer doesn't work
@@ -541,14 +587,9 @@ void loop() {
   //   while(getMasterLine()== true){
   //     pushAvaTime();
   //   }
-
   // }
   //pushAvaTime();
-
   //delay(1000);
-
-
-  
 }
 
 
