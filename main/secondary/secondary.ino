@@ -38,8 +38,8 @@ const short int anglePins[] = {6, 7, 8, 9, 10, 11, 12, 13};
 //to make the motor move without being demeshed from the gears, set motor strength to at least 500
 float motorStrength = 5000; // tried 7000, motor not turning but making noise..
 // INCREASE VALUE BY 50 TO GET A QUATER CIRCLE OF MOTION AT MOTOR STRENGTH 965
-const int SPIN_TIME = 90; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
-float swingPeriod = 1300;//desired period for swing motion 
+const int SPIN_TIME = 60; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
+float swingPeriod = 1300;//desired period for swing motion  // ONLY FOR PUSH AVA TIME
 
 bool jt_debug_is_moving_forward = false; ; // only poll when we actually call movingForward in pushAva accel
 const int jt_accel_sample_rate_microseconds = 75; //100 was og value, not trying 75 // 100 seems to read 4 values going forward, 4 values going backwards.
