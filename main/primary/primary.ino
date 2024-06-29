@@ -21,7 +21,7 @@ const short int decrementPin = 10;
 const short int startPin = 2; //Interrupt capable pin
 const short int stopPin = 3; //Interrupt capable pin
 const short int masterPin = 12;
-const short int buttonPins[] = {incrementPin, decrementPin, startPin, stopPin, clearPin};//used for buttons
+const short int buttonPins[] = {incrementPin, decrementPin, startPin, stopPin};//used for buttons
 
 //Define global timer variables
 volatile int minutes = 0;
