@@ -253,10 +253,11 @@ bool inQuadrantFour(){
 //specific angles will be fine turned
 //return true if the load is in the right location
 //return false if not
-bool inMotorTurnOnZone (){
+bool inMotorTurnOnZone(){
    //basically is saying if load is between 0 and -15, then
    //then its fine for the motors to kick on
-   if(yAngle <= minTurnOnAngle && yAngle >= maxTurnOnAngle && inQuadrantThree()== true){
+   // JT changed this to be within the range rather than outside.
+   if(yAngle >= minTurnOnAngle && yAngle <= maxTurnOnAngle && inQuadrantThree()== true){
     return true;
    }
 
@@ -585,9 +586,10 @@ void debug_display_orientation() {
   } else if (inQuadrantFour()) {
     Serial.print("\tfour  ");
   }
-  if(movingFoward()== true){
+  bool is_moving_forward = movingFoward(); // only poll once.
+  if(is_moving_forward== true){
     Serial.println("\t| FORWARD               | ");
-  } else if(movingFoward()== false){
+  } else if(is_moving_forward== false){
     Serial.println("\t|                       |                 BACK");
   }
 }
