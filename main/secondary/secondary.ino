@@ -47,8 +47,8 @@ const int angles[] = {0,15,30,45,60,75,80.95};
 const int motorStrengths[] = {400, 500, 600, 700, 800};
 const int DEFAULT_MOTOR_STRENGTH = 900;
 const int WACKY_MOTOR_STRENGTH = -1;
-const int minTurnOnAngle = 0;
-const int maxTurnOnAngle = -15;
+const int minTurnOnAngle = 75;
+const int maxTurnOnAngle = 90;
 
 //ACCELEROMETER TEST VARIABLES  
 const int ACCEL_TEST_NUM = 200;
@@ -60,6 +60,8 @@ bool accelStartupCheckResult;
 
 
 
+float prevYAngle = 0;
+float yDelta =0;
 
 //ANGULAR MATH VARIABLES
 float X_out, Y_out, Z_out;  // Outputs
@@ -196,19 +198,19 @@ void getOrientation(){
 //of the unit circle
 //this maps to being between 0 and -90
 bool inQuadrantThree(){
-  if(rollF <= 0 && rollF > -90){//if in angle range
+  //if zAngle is than 0 Ava is in the back half of swing
+  //back half of swing is called quadrant 3
+  if(zAngle > 0){//
     return true; 
   }
 
   return false;
 }
 
-//this function is used to determine if the
-//the acceleteromter is in quadrant 4
-//of the unit circle
-//this maps to being between 0 and 90
+  //if zAngle is greater than 0 Ava is in the front half of swing
+  //back half of swing is called quadrant 4
 bool inQuadrantFour(){
-  if(rollF > 0 && rollF <= 90){//if in angle range
+  if(zAngle < 0){//if in angle range
     return true;
   }
   return false;//else return false
@@ -222,7 +224,7 @@ bool inQuadrantFour(){
 bool inMotorTurnOnZone (){
    //basically is saying if load is between 0 and -15, then
    //then its fine for the motors to kick on
-   if(rollF <= minTurnOnAngle && rollF >= maxTurnOnAngle){
+   if(yAngle <= minTurnOnAngle && yAngle >= maxTurnOnAngle && inQuadrantThree()== true){
     return true;
    }
 
@@ -234,15 +236,19 @@ bool inMotorTurnOnZone (){
 //if moving forwards return 1
 bool movingFoward(){
 
+  yDelta = yAngle - prevYAngle;
+
   //xAngle should be getting closer to 0 if it's moving foward
   //xAngle should always have a negative value
   //so the closer xAngle is to 0, the more Ava will face up towards the sky 
-  if(prevRoll > rollF){
+  if( (yDelta > 0.08 && zAngle > 0) || (yDelta < -0.08 && zAngle < 0)){
+    prevYAngle = yAngle;
     //return true to indicate that load is moving forward
     return true;
   }
 
   //return false to indicate load is moving back
+  prevYAngle = yAngle;
   return false;
 
 }
@@ -419,14 +425,15 @@ void moveMotors(){
 
 //push ava based on what angle she currently is
 void pushAvaAccel(){
-      getAccel();//update acceleration values
-      getAngle();//update angle values
-      getRollAndPitch();//get roll and pitch values
+      //getAccel();//update acceleration values
+      //getAngle();//update angle values
+      //getRollAndPitch();//get roll and pitch values
 
 
-      if(movingFoward() == false && inQuadrantThree() == true){
+      /*if(movingFoward() == false && inQuadrantThree() == true){
         determineMotorStrength();//determine motorStrength
-      }
+      }*/
+
       //check to see if its okay to move motors
       if(inMotorTurnOnZone() == true && movingFoward() == true){
         moveMotors();//move the motors
@@ -487,32 +494,46 @@ if(accelStartupCheckResult == false){
 
 void loop() {
 
-  moveMotors();
-  delay(swingPeriod);
-/*
+  //moveMotors();
+  //delay(swingPeriod);
+
   //functionality for how to move Ava when the acceleomter is working
   if(accelStartupCheckResult == true){
+    Serial.println("Accelerometer Works");
+    delay(10000);//wait 10 seconds
      while(true){
+     //while(getMasterLine()==true){
+       delay(100);
        //gets accel, angles, roll/pitch
        getOrientation();
 
-       Serial.print("X angle: ");
+       /*Serial.print("X angle: ");
        Serial.print(xAngle);
-      
+      */
        Serial.print(" Y angle: ");
        Serial.print(yAngle);
       
        Serial.print(" Z angle: ");
        Serial.println(zAngle);
 
-       Serial.print(rollF);
-       Serial.print("/");
-       Serial.println(pitchF);
+       Serial.print("yDelta ");
+       Serial.println(yDelta);
+
+
+       if(movingFoward()== true){
+        Serial.println("FORWARD               | ");
+       }
+
+       else if(movingFoward()== false){
+        Serial.println("                      |                 BACK");
+       }
+
+
   
        //pushAvaAccel();
      }
      
-   }*/
+   }
 
   // //if it is determined accelerometer doesn't work
   // //push Ava using time based pushing
@@ -609,4 +630,3 @@ ISR(TIMER1_COMPA_vect){
   //sei();//re-enable all interrupts
 
 }
-
