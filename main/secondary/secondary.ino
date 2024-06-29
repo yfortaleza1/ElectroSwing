@@ -280,7 +280,7 @@ bool movingFoward(){
     //return true to indicate that load is moving forward
     return true;
   }
-
+ 
   //return false to indicate load is moving back
   // JT revalation 5:44pm was this the reason we were sometimes reading it was going back?!
   // prevYAngle = yAngle;
@@ -738,7 +738,6 @@ ISR(TIMER1_COMPA_vect){
 
   //once swing period is achieved move the motor
   if(secCounter == swingPeriod){
-
     secCounter = 0;//reset second's counter
     //disableMotorInterrupt();
     //sei();
