@@ -513,23 +513,23 @@ void loop() {
        Serial.print(" Y angle: ");
        Serial.print(yAngle);
       
-       Serial.print(" Z angle: ");
-       Serial.println(zAngle);
+       Serial.print("\tZ angle: ");
+       Serial.print(zAngle);
 
-       Serial.print("yDelta ");
-       Serial.println(yDelta);
+       Serial.print("\tyDelta ");
+       Serial.print(yDelta);
 
 
        if(movingFoward()== true){
-        Serial.println("FORWARD               | ");
+        Serial.print("\tFORWARD               | ");
        }
 
        else if(movingFoward()== false){
-        Serial.println("                      |                 BACK");
+        Serial.print("\t                      |                 BACK");
        }
 
 
-  
+       Serial.print("\n");
        //pushAvaAccel();
      }
      
