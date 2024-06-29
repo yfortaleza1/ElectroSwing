@@ -54,8 +54,8 @@ int jt_backward_count = 0;
 
 jt_direction_enum jt_previous_forward_or_backward_value;
 jt_direction_enum jt_current_forward_or_backward_value; // JT sets this after waiting for the zero readings to stop (i.e. initial push).
-const double JT_MIN_Y_DELTA_INDICATE_MOVING = 1.0; // at rest the values of yDelta are between 0 and 0.75. // sometimes 1.6 out of nowhere >:(
-const double JT_MIN_Z_DELTA_INDICATE_MOVING = 1.0; 
+const double JT_MIN_Y_DELTA_INDICATE_MOVING = 2; // at rest the values of yDelta are between 0 and 0.75. // sometimes 1.6 out of nowhere >:(
+const double JT_MIN_Z_DELTA_INDICATE_MOVING = 2; 
 // <- JT Guess 4:28pm 6/29. Note: sometimes zDelta is 170-179 which must be an error. Sometimes 160
 const double JT_MIN_Z_DELTA_ERRONEOUS_READING = 150; // for some reason it thinks this is the value somtimes when it's actually moving not at all.
 // JT todo 4:24pm 6/29 - incorporating z movement as well as y for more accurate reading. Y isn't enough because it doesn't change very much.
@@ -480,12 +480,12 @@ void pushAvaAccel(){
 
       // still only move if we find she is STILL moving forward.
       if(movingFoward() == true && inMotorTurnOnZone() == true ){
-         // moveMotors();//move the motors
-        Serial.println("====================================== ");
-        Serial.println("|                                    | ");
-        Serial.println("============= PUSH                   |  ");
-        Serial.println("|                                    | ");
-        Serial.println("======================================");
+         moveMotors();//move the motors
+        // Serial.println("====================================== ");
+        // Serial.println("|                                    | ");
+        // Serial.println("============= PUSH                   |  ");
+        // Serial.println("|                                    | ");
+        // Serial.println("======================================");
       } 
 
 }
