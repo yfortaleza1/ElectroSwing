@@ -62,7 +62,7 @@ const double JT_MIN_Z_DELTA_ERRONEOUS_READING = 150; // for some reason it think
 // (finished :D ) JT  4:24pm 6/29 - incorporating z movement as well as y for more accurate reading. Y isn't enough because it doesn't change very much.
 
 
-const double MIN_ABS_Z_DELTA_DURING_MOTION = 5; //
+const double JT_MIN_ABS_Z_DELTA_DURING_MOTION = 3; // JT NOTE : THIS IS MY ATTEMPT TO MAKE SURE THE SWING IS MOVING FAST ENOUGH TO INDICATE THE OPERATORS SITLL WANT IT TO MOVE! 
 
 const double MIN_Y_DELTA_DURING_MOTION = 0.08; // <- 0.08 is from Marc's code morning of 6/29
 
@@ -469,7 +469,7 @@ void moveMotors(){
 }
 
 bool jt_is_z_arc_fast_enough() {
-  return abs(zDelta) > MIN_ABS_Z_DELTA_DURING_MOTION;
+  return abs(zDelta) > JT_MIN_ABS_Z_DELTA_DURING_MOTION;
 }
 
 
