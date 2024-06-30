@@ -38,7 +38,7 @@ const short int anglePins[] = {6, 7, 8, 9, 10, 11, 12, 13};
 //to make the motor move without being demeshed from the gears, set motor strength to at least 500
 float motorStrength = 6500; // tried 7000, motor not turning but making noise..
 // INCREASE VALUE BY 50 TO GET A QUATER CIRCLE OF MOTION AT MOTOR STRENGTH 965
-const int SPIN_TIME = 60; // CONTROLS HOW LONG MOTOR WILL SPIN FOR, ONE VALUE THAT KINDA WORKS USED TO BE 60 WITH MOTORSTRENGTH 5000, NOTE: 80 is too long it seems i.e. with motor strength 5000
+const int SPIN_TIME = 40; // CONTROLS HOW LONG MOTOR WILL SPIN FOR, ONE VALUE THAT KINDA WORKS USED TO BE 60 WITH MOTORSTRENGTH 5000, NOTE: 80 is too long it seems i.e. with motor strength 5000
 float swingPeriod = 1300;//desired period for swing motion  // ONLY FOR PUSH AVA TIME
 
 float JT_MIN_DELAY_AFTER_ACCEL_PUSH = 160; // same unit as SPIN_TIME, SEEMS LIKE DOING DOUBLE THE SPIN_TIME IS A GOOD RULE OF THUMB MAYBE ?!?!?!
