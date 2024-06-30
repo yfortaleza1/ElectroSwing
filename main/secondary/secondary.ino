@@ -21,6 +21,10 @@ Jess lessons learned 6/29
 #include <Wire.h>  // Wire library - used for I2C communication
 #include <time.h>
 
+#define JT_WANTS_MOVE_MOTORS_BOOL true
+// ^ if its true, I won't bother doing serial prints that say "Move motors!"
+// if it's false, I will only print that message but NOT actually move the motors.
+
 
 const int CLOCK_SPEED = 16000000;
 
@@ -80,8 +84,8 @@ const int motorStrengths[] = {400, 500, 600, 700, 800};
 const int DEFAULT_MOTOR_STRENGTH = 900;
 const int WACKY_MOTOR_STRENGTH = -1;
 /* ------------------------------------------------------- */
-const int minTurnOnAngle = 75; // <====================================== ACTUALLY USED
-const int maxTurnOnAngle = 90; // <======================================= ACTUALLY USED
+const int minTurnOnAngle = 70; // <====================================== ACTUALLY USED // 70 seems about the highest degree I get upwards when I'm in the seat in the lab.
+const int maxTurnOnAngle = 75; // <======================================= ACTUALLY USED // used to be 90, but that seemed to make the swing push twice in a row.
 
 //ACCELEROMETER TEST VARIABLES  
 const int ACCEL_TEST_NUM = 200;
@@ -492,13 +496,17 @@ void pushAvaAccel(){
 
       // still only move if we find she is STILL moving forward.
       if(movingFoward() == true && inMotorTurnOnZone() == true && jt_is_z_arc_fast_enough()){
-         moveMotors();//move the motors
-        // Serial.println("====================================== ");
-        // Serial.println("|                                    | ");
-        // Serial.println("============= PUSH (call moveMotors )|  ");
-        // Serial.println("=============  (inside pushAvaAccel )|  ");
-        // Serial.println("|                                    | ");
-        // Serial.println("======================================");
+        if (JT_WANTS_MOVE_MOTORS_BOOL) {
+          moveMotors();//move the motors
+        } else {
+          Serial.println("====================================== ");
+          Serial.println("|                                    | ");
+          Serial.println("============= PUSH (call moveMotors )|  ");
+          Serial.println("=============  (inside pushAvaAccel )|  ");
+          Serial.println("|                                    | ");
+          Serial.println("======================================");
+        }
+        
 
         // JT 7:37pm 6-29 maybe if we ensure it doesn't push again for a moment that'll fix that :0
         delay(JT_MIN_DELAY_AFTER_ACCEL_PUSH);
