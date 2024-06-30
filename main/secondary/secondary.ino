@@ -45,6 +45,7 @@ bool jt_debug_is_moving_forward = false; ; // only poll when we actually call mo
 const int jt_accel_sample_rate_microseconds = 75; //100 was og value, not trying 75 // 100 seems to read 4 values going forward, 4 values going backwards.
 const int MIN_VALID_DIRECTION_READINGS = 6; // used to be 4, but that was just a gestimate for 100micros
 
+
 enum jt_direction_enum {
   forward = 0,
   backward = 1
@@ -54,10 +55,12 @@ int jt_backward_count = 0;
 
 jt_direction_enum jt_previous_forward_or_backward_value;
 jt_direction_enum jt_current_forward_or_backward_value; // JT sets this after waiting for the zero readings to stop (i.e. initial push).
+
 const double JT_MIN_Y_DELTA_INDICATE_MOVING = 2; // at rest the values of yDelta are between 0 and 0.75. // sometimes 1.6 out of nowhere >:(
 const double JT_MIN_Z_DELTA_INDICATE_MOVING = 2; 
 // <- JT Guess 4:28pm 6/29. Note: sometimes zDelta is 170-179 which must be an error. Sometimes 160
 const double JT_MIN_Z_DELTA_ERRONEOUS_READING = 150; // for some reason it thinks this is the value somtimes when it's actually moving not at all.
+
 // JT todo 4:24pm 6/29 - incorporating z movement as well as y for more accurate reading. Y isn't enough because it doesn't change very much.
 
 const double MIN_Y_DELTA_DURING_MOTION = 0.08; // <- 0.08 is from Marc's code morning of 6/29
@@ -280,6 +283,7 @@ bool movingFoward(){
   if( jt_check_is_swing_moving_at_all() && ((yDelta > MIN_Y_DELTA_DURING_MOTION && zAngle > 0) || (yDelta < -MIN_Y_DELTA_DURING_MOTION && zAngle < 0))) {
     // jt_current_forward_or_backward_value
     // JT 5:44pm thinking that we may have to also check t(if prev_direction == FORWARD )
+
     //return true to indicate that load is moving forward
     jt_debug_is_moving_forward = true;
     return true;
@@ -290,6 +294,7 @@ bool movingFoward(){
   // prevYAngle = yAngle;
   // prevZAngle = zAngle;
   jt_debug_is_moving_forward = false;
+
   return false;
 
 }
@@ -553,6 +558,7 @@ bool jt_check_is_swing_moving_at_all() {
   return sufficient_motion_detected;
 }
 
+
 void jt_loop_til_detect_motion() {
   while (jt_check_is_swing_moving_at_all() == false) {
 
@@ -660,9 +666,11 @@ void loop() {
      //while(getMasterLine()==true){
        delay(jt_accel_sample_rate_microseconds);
        //gets accel, angles, roll/pitch
+
        // getOrientation(); // my jt is swing moving at all function checks this already so i don't want to over-sample
        debug_display_orientation();
        pushAvaAccel();
+
      } 
    }
 

@@ -14,6 +14,8 @@ Todo: use master pin to signal to secondary that it can do its logic.
 #include <Wire.h>
 #include <math.h> // floor function.
 #include <TimerOne.h>
+#define INCREMENT_MINUTES 5
+#define DECREMENT_SECONDS (60*5)
 
 //Define button variables
 const short int incrementPin = 11;
@@ -129,7 +131,6 @@ void loop() {
 }
 
 
-
 /*
 Helper functions and ISRs
 */
@@ -153,8 +154,6 @@ void startTime(){
     }
 	
 
-}
-
 void stopTime(){
 	if(timeIsSet){
 		countDownActive = false;
@@ -173,7 +172,6 @@ void buttonSetup(){
 	pinMode(masterPin, OUTPUT);
 	digitalWrite(masterPin, LOW);
 }
-
 
 //USED FOR CLEARING SWING TIME
 void clearTimer(){
@@ -207,20 +205,22 @@ void decrementTime(){
 
 void decrementPresetTime(){ //This function will only be called when the countdown is stalled/stopped
 	noInterrupts(); // Disable interrupts
+	Serial.println("AH YOU PUSHED DECREMENT :0 +++++++++++++ ");
     // Calculate the total time in seconds
     int totalTimeInSeconds = minutes * 60 + seconds;
 
     // Check to prevent underflow and ensure total time is at least 30 seconds before decrementing
-    if (totalTimeInSeconds >= 30) {
-        totalTimeInSeconds -= 30; // Decrement by 30 seconds
-
-        // Convert back to minutes and seconds
-        minutes = totalTimeInSeconds / 60;
-        seconds = totalTimeInSeconds % 60;
-        
-        timeIsSet = true; // Indicate that time has been set or adjusted
-        timeIsSet = true; // Indicate that time has been set or adjusted
-    }
+    if (totalTimeInSeconds >= DECREMENT_SECONDS) {
+        totalTimeInSeconds -= DECREMENT_SECONDS; // Decrement by 30 seconds
+    } else {
+		totalTimeInSeconds = 0; // assume the user meant to reset if they are say at 0:20 and the decrement const is 30.
+	}
+	// Convert back to minutes and seconds
+	minutes = totalTimeInSeconds / 60;
+	seconds = totalTimeInSeconds % 60;
+	
+	timeIsSet = true; // Indicate that time has been set or adjusted
+	timeIsSet = true; // Indicate that time has been set or adjusted
     interrupts();
     updateTime();
 }
