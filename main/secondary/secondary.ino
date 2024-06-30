@@ -21,11 +21,6 @@ Jess lessons learned 6/29
 #include <Wire.h>  // Wire library - used for I2C communication
 #include <time.h>
 
-#define JT_WANTS_MOVE_MOTORS_BOOL true
-// ^ if its true, I won't bother doing serial prints that say "Move motors!"
-// if it's false, I will only print that message but NOT actually move the motors.
-
-
 const int CLOCK_SPEED = 16000000;
 
 // defines pins numbers
@@ -496,16 +491,16 @@ void pushAvaAccel(){
 
       // still only move if we find she is STILL moving forward.
       if(movingFoward() == true && inMotorTurnOnZone() == true && jt_is_z_arc_fast_enough()){
-        if (JT_WANTS_MOVE_MOTORS_BOOL) {
-          moveMotors();//move the motors
-        } else {
-          Serial.println("====================================== ");
-          Serial.println("|                                    | ");
-          Serial.println("============= PUSH (call moveMotors )|  ");
-          Serial.println("=============  (inside pushAvaAccel )|  ");
-          Serial.println("|                                    | ");
-          Serial.println("======================================");
-        }
+
+        moveMotors();//move the motors
+
+        // Serial.println("====================================== ");
+        // Serial.println("|                                    | ");
+        // Serial.println("============= PUSH (call moveMotors )|  ");
+        // Serial.println("=============  (inside pushAvaAccel )|  ");
+        // Serial.println("|                                    | ");
+        // Serial.println("======================================");
+        
         
 
         // JT 7:37pm 6-29 maybe if we ensure it doesn't push again for a moment that'll fix that :0
