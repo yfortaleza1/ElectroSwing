@@ -42,7 +42,7 @@ float motorStrength = 5000; // tried 7000, motor not turning but making noise..
 const int SPIN_TIME = 60; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
 float swingPeriod = 1300;//desired period for swing motion  // ONLY FOR PUSH AVA TIME
 
-float JT_MIN_DELAY_AFTER_ACCEL_PUSH = 10; // same unit as SPIN_TIME
+float JT_MIN_DELAY_AFTER_ACCEL_PUSH = 120; // same unit as SPIN_TIME
 bool jt_debug_is_moving_forward = false; ; // this is just to be displayed as which direction we are moving FORWARD | BACK in the debug_show_... function.
 const int jt_accel_sample_rate_microseconds = 75; //100 was og value, not trying 75 // 100 seems to read 4 values going forward, 4 values going backwards.
 const int MIN_VALID_DIRECTION_READINGS = 6; // used to be 4, but that was just a gestimate for 100micros
@@ -61,6 +61,9 @@ const double JT_MIN_Z_DELTA_INDICATE_MOVING = 2;
 // <- JT Guess 4:28pm 6/29. Note: sometimes zDelta is 170-179 which must be an error. Sometimes 160
 const double JT_MIN_Z_DELTA_ERRONEOUS_READING = 150; // for some reason it thinks this is the value somtimes when it's actually moving not at all.
 // (finished :D ) JT  4:24pm 6/29 - incorporating z movement as well as y for more accurate reading. Y isn't enough because it doesn't change very much.
+
+
+const double MIN_ABS_Z_DELTA_DURING_MOTION = 5; //
 
 const double MIN_Y_DELTA_DURING_MOTION = 0.08; // <- 0.08 is from Marc's code morning of 6/29
 
@@ -466,6 +469,10 @@ void moveMotors(){
     // Serial.println("Bottom of moveMotors()");
 }
 
+bool jt_is_z_arc_fast_enough() {
+  return abs(zDelta) > MIN_ABS_Z_DELTA_DURING_MOTION;
+}
+
 
 
 
@@ -484,13 +491,14 @@ void pushAvaAccel(){
       // jt_loop_til_fully_moving_forward(); // 5:20pm last stitch effort. // moving this at 6:02 to movingFoward()
 
       // still only move if we find she is STILL moving forward.
-      if(movingFoward() == true && inMotorTurnOnZone() == true ){
-         //moveMotors();//move the motors
-        Serial.println("====================================== ");
-        Serial.println("|                                    | ");
-        Serial.println("============= PUSH                   |  ");
-        Serial.println("|                                    | ");
-        Serial.println("======================================");
+      if(movingFoward() == true && inMotorTurnOnZone() == true && jt_is_z_arc_fast_enough()){
+         moveMotors();//move the motors
+        // Serial.println("====================================== ");
+        // Serial.println("|                                    | ");
+        // Serial.println("============= PUSH (call moveMotors )|  ");
+        // Serial.println("=============  (inside pushAvaAccel )|  ");
+        // Serial.println("|                                    | ");
+        // Serial.println("======================================");
 
         // JT 7:37pm 6-29 maybe if we ensure it doesn't push again for a moment that'll fix that :0
         delay(JT_MIN_DELAY_AFTER_ACCEL_PUSH);
