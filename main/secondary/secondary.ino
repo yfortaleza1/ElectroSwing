@@ -1,25 +1,87 @@
 /*
 * Project: Ava's Motorized Swing
-* File:    accelRead.ino
+* File:    secondary.ino
 * Authors: Marc, Jess, Yoel
 
-Jess lessons learned 6/29
-- maybe we need to push when we know she was moving backwards and now we know she is moving forward (i.e. 5 times, but with an increased sample rate.)
+Jess lessons learned 6/29 and the state of this program after my many edits
+- State of the program:
+currently this is not interfacing with the primary controller,
+and AS SOON AS YOU TURN THE SYSTEM POWER ON , if you meet the motor push conditions, it will push
+
+      Those conditions to move the motor are currently
+      - (slightly new) are we moving forward (same as before but incorporates NEW feature:)
+        // added code within this that has the accelerometer **detecting that we are moving at all**
+        // so now the movingForward() function runs getOrientation, and nowhere else.
+        // this is listed FIRST and ran FIRST because of that fact that i use it to getOrientation() and the other conditions depend on that.
+      - are we in the third quadrant (same as before)
+      - (NEW: jt_is_z_arc_fast_enough()) are we moving fast enough to indicate that the user wants to swing
+        i.e. did the operator pull the load up between the slightly higher than the max angle so that
+        between the min and max angle we wanna push, she's already got some speed to her.
+
+
+- Lesson: I can display to Serial output when the swing WOULD be pushing by changing these lines
+--- change `moveMotors()` => `// moveMotors();`
+--- uncomment that chunk of Serial prints
+--- and back and forth depending on if you want to only visually confirm when the motor is pushing
+vs if you ACTUALLY want the motors to push.
+  
+    void pushAvaAccel() {
+      // still only move if we find she is STILL moving forward.
+      if(movingForward() == true && inMotorTurnOnZone() == true && jt_is_z_arc_fast_enough()){
+
+        moveMotors();//move the motors
+
+        // Feel free to uncomment this to see when the motor WOULD be moved 
+        // I tend to comment out moveMotors when I do that through, since I only want to look at on place at a time.
+
+        // Serial.println("====================================== ");
+        // Serial.println("|                                    | ");
+        // Serial.println("============= PUSH (call moveMotors )|  ");
+        // Serial.println("=============  (inside pushAvaAccel )|  ");
+        // Serial.println("|                                    | ");
+        // Serial.println("======================================");
+
+        // JT 7:37pm 6-29 maybe if we ensure it doesn't push again for a moment that'll fix that :0
+        delay(JT_MIN_DELAY_AFTER_ACCEL_PUSH);
+      } 
+
+- Lesson: we can ignore states when the **user isn't moving** within a certain angle range/acceleration
+  - so far setting these to 2, then looping over and over again until we find both values exceeded this has been effective
+  - JT_MIN_Y_DELTA_INDICATE_MOVING // i.e. 2.0
+  // at rest the values of yDelta are between 0 and 0.75. // sometimes 1.6 out of nowhere >:(
+  - JT_MIN_Z_DELTA_INDICATE_MOVING // i.e. 2.0
+
+  - THE COOL THING IS THAT THIS SEEMS TO BE EFFECTIVE TO ALLOW THE OPERATOP TO SLOW THE SWING DOWN AND CAUSE THE MOTOR TO STOP TRYING TO PUSH.
+  // but this is only consistently helpful if you do stop the swing NOT while it's in the detection zone (i.e. 75-85) aka (-15 to -10 from the vertical axis)
+
+  - additionally, I had to "ignore" faulty acceleration values in order to achieve this.
+  Currently that is handled with this variable, since from reading console outputs, I saw the zDelta jump up to between 150-180 when the swing wasn't moving or was slow, I just treat the state the same as when the system isn't moving at all or I'm assuming they DONT WANT To move.
+  - JT_MIN_Z_DELTA_ERRONEOUS_READING // i.e. 150
+
+- lesson: we can detect when she is moving forward from a certain angle range (most if not all the time,
+but the user has to be intentional not to accidentally stop it in the wrong range.
+)
+
+=============================================================================================
+TODO:
+--------------------------------------------------------------
+- update design specification. Particularly, explain how INCREASING "strength" causes the swing to move less forcefully.
+  // and new revelation that the increase to this should probably also involve a decrease to SPIN_TIME
 
 - TODO: MAKE SURE THE PARENT ONLY STOPS THE USER IN THE FOURTH QUADRANT
+- additionally, make sure that we don't push her if she's just in the middle.
+
+- (maybe) to avoid the motor catching, detect when the swing is trying to move downwards?
+-- So far, I've been trying to just guarantee it with physics by only pushing from certain areas (behind the vertical axis)
+and only for a certain amount of time.
+-- I believe that may be more practical than trying to see when the swing is *trying* to move downward while the motor is moving up,
+because technically the bar won't be moving much at all cuz the velocity is zero and we are switching direction,
+and I currently ignore 
 */
 
-
-/*
-    Arduino and ADXL345 Accelerometer - 3D Visualization Example 
-     by Dejan, https://howtomechatronics.com
-*/
-
-
-//THIS IS USING ARDUINO UNO
+//THIS IS USING ARDUINO MEGA
 #include <Wire.h>  // Wire library - used for I2C communication
 #include <time.h>
-
 
 const int CLOCK_SPEED = 16000000;
 
@@ -32,48 +94,73 @@ const short int anglePins[] = {6, 7, 8, 9, 10, 11, 12, 13};
 
 //MOTOR STRENGTH VARIABLE
 //using the microsecondsDelay function
-//valid min is 250
-//valid max is 10000
-
+//valid min is 250 | valid max is 10000 | **realistic max** is 7000
 //to make the motor move without being demeshed from the gears, set motor strength to at least 500
-float motorStrength = 5000; // tried 7000, motor not turning but making noise..
-// INCREASE VALUE BY 50 TO GET A QUATER CIRCLE OF MOTION AT MOTOR STRENGTH 965
-const int SPIN_TIME = 90; // CONTROLS HOW LONG MOTOR WILL SPIN FOR
-float swingPeriod = 1300;//desired period for swing motion 
+float motorStrength = 6500; // tried 7000, motor not turning but making noise.. // .................... (not sure this applies anymore as of 6-29...) INCREASE VALUE BY 50 TO GET A QUATER CIRCLE OF MOTION AT MOTOR STRENGTH 965
+const int SPIN_TIME = 40; // CONTROLS HOW LONG MOTOR WILL SPIN FOR, ONE VALUE THAT KINDA WORKS USED TO BE 60 WITH MOTORSTRENGTH 5000, NOTE: 80 is too long it seems i.e. with motor strength 5000
+const int minTurnOnAngle = 75; // <====================================== ACTUALLY USED // 70 seems about the highest degree I get upwards when I'm in the seat in the lab.
+const int maxTurnOnAngle = 85; // <======================================= ACTUALLY USED // used to be 90, but that seemed to make the swing push twice in a row.
 
-bool jt_debug_is_moving_forward = false; ; // only poll when we actually call movingForward in pushAva accel
+// JT - SUCCESSFULLY USE THESE VALUES TO MAKE SURE THE SWING IS MOVING :)
+float JT_MIN_DELAY_AFTER_ACCEL_PUSH = 160; // same unit as SPIN_TIME, SEEMS LIKE DOING DOUBLE THE SPIN_TIME IS A GOOD RULE OF THUMB MAYBE ?!?!?!
+
+// JT tested combinations: (including the commit link where applicable so you can test the code exactly as it was.)
+// the higher on the list, the better I know it worked for me :)
+// so far, close to 6000-7000 and a spin time around 40-50 have been effective.
+// we want the delay ("strength") to be close enough to the max so that it doesn't overpower the gear system
+// and we want the spin time to be short enough that we don't push the swing so far that it wants to go back down and we are still pushing it.
+// and we want the angle range to be "early" enough that we aren't pushing for so long we don't end up in the same scenario as the previous sentence. [tends to be between 75-90 max, preferably 75-85]
+/*
+(motorStrength, SPIN_TIME,  JT_MIN_DELAY_AFTER_ACCEL_PUSH, minTurnOnAngle, maxTurnOnAngle )
+
+(s = 6500,      t = 40,       d = 160,                      75,           85              ) **WINNER** <- Worked well enough for me to make it the final version on the hardware when I left at 10pm on 6/29.
+  https://github.com/yfortaleza1/ElectroSwing/commit/8781a52bf874e7ad65b648be8b22fa7b40c494f2
+
+(s = 6500,      t = 60,       d = 10                      , 75,           90              ) // didn't work, pushed for too long, motor still caught when the swing was moving backwards
+  https://github.com/yfortaleza1/ElectroSwing/commit/2d7b3ddba161d58e48beb1b0eea6ddb7ea5ac6f9
+
+// =======================================================================
+// tested WITHOUT current up to date (i.e. 9pm 6/29) delay between the times I pushAvaAccel after all 3 of our conditions were met.
+// ===============================================================
+(s = 5000,      t = 90        N/A [tested time based...]                                  ) 
+  // this was the code that I had worked off of to make this version.
+  https://github.com/yfortaleza1/ElectroSwing/commit/20b5415bc892d1caea7ddc12e17625a71a54f368#diff-d0a2e0015c598f26086a1f33363edcd1dd867b33d43fc31d0bcff37f4b5fa6ddR40
+
+(s = 5000,      t = 60,       None (not implemented yet),    75,        90                  )         // similar problem as below
+    https://github.com/yfortaleza1/ElectroSwing/commit/60f95de8c225dd9b8fb2e15028ee7c246550db79
+(s = 5000,      t = 90,       N/A (not implemnted yet),      75,         0)       // gets snagged with the sprocket because it's pushing too forcefully for too long.
+    // ^ fun fact this is from the first commit I got the accelerometer to correctly detect if the swing is moving forward to push.
+    //  https://github.com/yfortaleza1/ElectroSwing/commit/9ec9b635c4076587427ee8db994757c4fb98afeb?diff=unified&w=0
+// this is the first combo I tried that seemed to work alright, but the hi
+*/
+
+
+
+bool jt_is_moving_forward_flag_for_displaying_without_reevaluating_accel = false; ; // this is just to be displayed as which direction we are moving FORWARD | BACK in the debug_show_... function.
 const int jt_accel_sample_rate_microseconds = 75; //100 was og value, not trying 75 // 100 seems to read 4 values going forward, 4 values going backwards.
-const int MIN_VALID_DIRECTION_READINGS = 6; // used to be 4, but that was just a gestimate for 100micros
-
-enum jt_direction_enum {
-  forward = 0,
-  backward = 1
-};
-int jt_forward_count = 0;
-int jt_backward_count = 0;
-
-jt_direction_enum jt_previous_forward_or_backward_value;
-jt_direction_enum jt_current_forward_or_backward_value; // JT sets this after waiting for the zero readings to stop (i.e. initial push).
 const double JT_MIN_Y_DELTA_INDICATE_MOVING = 2; // at rest the values of yDelta are between 0 and 0.75. // sometimes 1.6 out of nowhere >:(
 const double JT_MIN_Z_DELTA_INDICATE_MOVING = 2; 
 // <- JT Guess 4:28pm 6/29. Note: sometimes zDelta is 170-179 which must be an error. Sometimes 160
 const double JT_MIN_Z_DELTA_ERRONEOUS_READING = 150; // for some reason it thinks this is the value somtimes when it's actually moving not at all.
-// JT todo 4:24pm 6/29 - incorporating z movement as well as y for more accurate reading. Y isn't enough because it doesn't change very much.
+// (finished :D ) JT  4:24pm 6/29 - incorporating z movement as well as y for more accurate reading. Y isn't enough because it doesn't change very much.
+const double JT_MIN_ABS_Z_DELTA_DURING_MOTION = 3; // JT NOTE : THIS IS MY ATTEMPT TO MAKE SURE THE SWING IS MOVING FAST ENOUGH TO INDICATE THE OPERATORS SITLL WANT IT TO MOVE! 
 
-const double MIN_Y_DELTA_DURING_MOTION = 0.08; // <- 0.08 is from Marc's code morning of 6/29
+// didn't put JT_ on this variable because marc set it, I just moved it up here to the constants.
+const double MIN_Y_DELTA_DURING_MOTION = 0.08; // <- 0.08 is from Marc's code (in `movingForward()`) morning of 6/29
 
-const int MAX_ANGLE = -45;
+
 
 const int ADXL345 = 0x53; // The ADXL345 sensor I2C address
 
 //PRE-DEFINED ANGULAR VARIABLES
-const int numAngles = 7;
+
+/* These aren't being used right now currently in pushAvaAccell 7:49pm 6-29*/
+const int numAngles = 7; 
 const int angles[] = {0,15,30,45,60,75,80.95};
 const int motorStrengths[] = {400, 500, 600, 700, 800};
 const int DEFAULT_MOTOR_STRENGTH = 900;
 const int WACKY_MOTOR_STRENGTH = -1;
-const int minTurnOnAngle = 75;
-const int maxTurnOnAngle = 90;
+/* ------------------------------------------------------- */
 
 //ACCELEROMETER TEST VARIABLES  
 const int ACCEL_TEST_NUM = 200;
@@ -96,7 +183,7 @@ float roll,pitch,rollF,pitchF=0;
 float prevXAngle, xAngle, yAngle, zAngle;//holds angle in respective deminsion
 
 int currMaxAngle = 0;//keeps track of max angle on return swings in quadrant 3
-int prevRoll = 0;//used in movingFoward function to determine if the swing is moving foward
+int prevRoll = 0;//used in movingForward function to determine if the swing is moving foward
 
 //Timer variables 
 int secTick = 0;//used to count up to a second in interrupt
@@ -204,7 +291,7 @@ void getAngle (){
 //get roll and pitch from acceleration values
 void getRollAndPitch() {
 
-  prevRoll = rollF;//store the previous roll, used in movingFoward function.
+  prevRoll = rollF;//store the previous roll, used in movingForward function.
 
   // Calculate Roll and Pitch (rotation around X-axis, rotation around Y-axis)
   pitch = atan(-1 * X_out / sqrt(pow(Y_out, 2) + pow(Z_out, 2))) * 180 / PI;
@@ -270,7 +357,7 @@ bool inMotorTurnOnZone(){
 //determines if load is moving forwards or backwards
 //if moving backwards return 0
 //if moving forwards return 1
-bool movingFoward(){
+bool movingForward(){
 
   
 
@@ -281,7 +368,7 @@ bool movingFoward(){
     // jt_current_forward_or_backward_value
     // JT 5:44pm thinking that we may have to also check t(if prev_direction == FORWARD )
     //return true to indicate that load is moving forward
-    jt_debug_is_moving_forward = true;
+    jt_is_moving_forward_flag_for_displaying_without_reevaluating_accel = true;
     return true;
   }
  
@@ -289,7 +376,7 @@ bool movingFoward(){
   // JT revalation 5:44pm was this the reason we were sometimes reading it was going back?!
   // prevYAngle = yAngle;
   // prevZAngle = zAngle;
-  jt_debug_is_moving_forward = false;
+  jt_is_moving_forward_flag_for_displaying_without_reevaluating_accel = false;
   return false;
 
 }
@@ -304,25 +391,19 @@ bool accelOffline(){
     accelCounter = 0;//reset the test counter
     accelFailCounter = 0;//reset the fail counter
   }
-
-
   if(xAngle = 0 && yAngle == 0 && zAngle == 0){
     accelFailCounter +=1;
   }
   if(accelFailCounter > accelCounter || accelFailCounter >= MAX_ACCEL_FAILS){
     return false;
   }
-
   return true;
 }
-
-
 
 //this function should only be used when the accelrometer is being used
 //when the masterPin goes high. Wait a determined amount of time to make sure that
 //Ava is in a safe startup position
 bool accelStartupPositionCheck(){
-
   int validCounter = 0;//counter keep track of how many times Ava is in valid angle startup range
   int testNum = 1000;//counter max
   int passNum = testNum*0.95;//counter must reach this value to pass the test
@@ -331,13 +412,11 @@ bool accelStartupPositionCheck(){
     if(rollF > -15 && rollF < 15){//in valid range
           validCounter+=1;
     }
-
     //return true if Ava is deemed to be in a good position
     if(validCounter >= passNum){
       return true;
     }
   }
-
   return false;//by default
 }
 
@@ -349,7 +428,6 @@ bool accelStartupPositionCheck(){
 //motors based on timing intervals (period).
 //returns true by default
 bool checkAccelStartup(){
-
   //if the accelerometer isnt offline and Ava is rest
   //return true
   if(accelOffline() == true && accelStartupPositionCheck() ==true){
@@ -359,52 +437,16 @@ bool checkAccelStartup(){
   return false;
 }
 
-
-
 //setup Motors
 void setupMotors() {
     // Sets the two pins as Outputs
     pinMode(stepPin, OUTPUT);
     pinMode(dirPin, OUTPUT);
-
     pinMode(enPin, OUTPUT);
     digitalWrite(enPin, HIGH);
-
-
     pinMode(masterPin, INPUT);//pin used for recieved command form MASTER ARDUINO
-
-
 }
 
-
-//determine Motor stregnth based current angle
-void determineMotorStrength(){
-  
-  //check to see what angle range motor is in and select motorStrength
-  
-  if(currMaxAngle < rollF){//updates the max angle if rollF is steeper
-    currMaxAngle = rollF;
-  }
-
-  if(currMaxAngle < MAX_ANGLE){//angle is too steep then 
-    motorStrength = WACKY_MOTOR_STRENGTH;//indicate the motor shouldnt shouldn't push by assigning meaningless value
-  }
-
-  else{
-    for(int i = 0; i < numAngles-1; i++){
-      if(rollF >= angles[i] && rollF < angles[i+1]){
-
-        motorStrength = motorStrengths[i];//select motor strength
-
-        //select led to indicate which angle range load is in
-        //turnOffLED();//TURN OFF all LEDS
-        digitalWrite(anglePins[i], HIGH);//turn on respective angle LED
-
-        return;
-      }
-    }
-  }
-}
 
 //Function that moves motors at specified strength
 void moveMotors(){
@@ -430,7 +472,6 @@ void moveMotors(){
       digitalWrite(enPin, LOW);//allows the motor to move
       digitalWrite(dirPin, LOW); // Enables the motor to move in a particular direction
 
-
       digitalWrite(dirPin, HIGH); // Enables the motor to move in a particular direction
       for (int x = 0; x < SPIN_TIME; x++)
       { // SPIN_TIME VALUE DICTATES HOW LONG MOTOR WILL SPIN
@@ -444,7 +485,6 @@ void moveMotors(){
       // REASON UNCLEAR
       delay(10);                 // THIS NEEDS TO BE HERE
 
-      
       //PUT ANOTHER MOTOR MOVE LOOP HERE IF you want
       //But for now disable motors until next function call
       digitalWrite(dirPin, HIGH); // Enables the motor to move in a particular direction
@@ -461,42 +501,45 @@ void moveMotors(){
     // Serial.println("Bottom of moveMotors()");
 }
 
-
+bool jt_is_z_arc_fast_enough() {
+  return abs(zDelta) > JT_MIN_ABS_Z_DELTA_DURING_MOTION;
+}
 
 
 //push ava based on what angle she currently is
 void pushAvaAccel(){
+      // JT commented these so that I know I only poll the accelerometer values once, inside movingForward()
+      // DONT UNCOMMENT THESE , UNLESS YOU ALSO COMMENT OUT getOrientation in movingForward
       //getAccel();//update acceleration values
       //getAngle();//update angle values
       //getRollAndPitch();//get roll and pitch values
 
 
-      /*if(movingFoward() == false && inQuadrantThree() == true){
+      /*if(movingForward() == false && inQuadrantThree() == true){
         determineMotorStrength();//determine motorStrength
       }*/
 
-      //check to see if its okay to move motors
-      // jt_loop_til_fully_moving_forward(); // 5:20pm last stitch effort. // moving this at 6:02 to movingFoward()
-
       // still only move if we find she is STILL moving forward.
-      if(movingFoward() == true && inMotorTurnOnZone() == true ){
-         moveMotors();//move the motors
+      if(movingForward() == true && inMotorTurnOnZone() == true && jt_is_z_arc_fast_enough()){
+
+        moveMotors();//move the motors
+
+        // Feel free to uncomment this to see when the motor WOULD be moved 
+        // I tend to comment out moveMotors when I do that through, since I only want to look at on place at a time.
+
         // Serial.println("====================================== ");
         // Serial.println("|                                    | ");
-        // Serial.println("============= PUSH                   |  ");
+        // Serial.println("============= PUSH (call moveMotors )|  ");
+        // Serial.println("=============  (inside pushAvaAccel )|  ");
         // Serial.println("|                                    | ");
         // Serial.println("======================================");
+
+        // JT 7:37pm 6-29 maybe if we ensure it doesn't push again for a moment that'll fix that :0
+        delay(JT_MIN_DELAY_AFTER_ACCEL_PUSH);
       } 
 
 }
 
-
-//pushes Ava every few seconds
-void pushAvaTime(){
-    // Serial.println("Inside pushAvaTime.");
-    moveMotors();
-    delay(swingPeriod);
-}
 
 //returns status of master Pin
 //which is a signal from the primary arduinio
@@ -526,21 +569,17 @@ void setup() {
   
   setupMotors();
   if (accelStartupCheckResult == true) {
-    getOrientation(); // JT: added this 6/29 3:56pm -  set's initial prevY
+    getOrientation(); // JT: added this 6/29 3:56pm -  also set's initial prevY so we can accurately calculate the delta
   }
 
-/*  //this is the motor setup for interrupts
-    //not using it right now
-if(accelStartupCheckResult == false){
+  /*  
+  //this is the OLD motor setup for interrupts  
+  //not using it right now
+  if(accelStartupCheckResult == false){
     setupMotors();//setup motors
     motorTimerSetup();
-  }*/
-
-  // else{
-    //do nothing else for setting up
-    //if Accel works
-  // }
-
+  } // else do nothing
+  */
 }
 
 // return true if I think the swing is moving at all
@@ -575,16 +614,15 @@ void debug_display_orientation() {
   */
   Serial.print("\t\tY angle: ");
   Serial.print(yAngle);
-  //  Serial.print(" Z angle: ");
-  //  Serial.println(zAngle);
   Serial.print("\tyDelta ");
   Serial.print(yDelta);
+
+  Serial.print("\tZ angle: ");
+  Serial.print(zAngle);
 
   Serial.print("\tzDelta ");
   Serial.print(zDelta);
 
-  // JT Hypothesis: apply first push. Then only move after abs( yDelta ) is greater than 1
-  // ^ COME BACK TO THIS 6/29 3:30pm
   Serial.print("\tquadrant ");
   if (inQuadrantThree()) {
     Serial.print("\tTHREE ");
@@ -593,95 +631,87 @@ void debug_display_orientation() {
   }
   
   // DONT CALL movingForward HERE BECAUSE THAT REPOLLS THE ACCELEROMETER :0
-  if(jt_debug_is_moving_forward== true){
+  if(jt_is_moving_forward_flag_for_displaying_without_reevaluating_accel== true){
     Serial.println("\t| FORWARD               | ");
-  } else if(jt_debug_is_moving_forward== false){
+  } else {
     Serial.println("\t|                       |                 BACK");
   }
 }
 
 
-void jt_loop_til_fully_moving_forward() {
-  getOrientation();
-  jt_current_forward_or_backward_value = movingFoward() ? forward : backward;
-    
-  while (jt_forward_count < MIN_VALID_DIRECTION_READINGS) {
-    Serial.print("Counting direction FORWARD = (");
-    Serial.print(jt_forward_count);
-    Serial.print(")");
-    Serial.print(" backward = (");
-    Serial.print(jt_backward_count);
-    Serial.print(")");
-    debug_display_orientation();
-
-    // if they were already moving forward keep counting like normal
-    if (movingFoward() && jt_current_forward_or_backward_value == forward) {
-      jt_forward_count++;
-      jt_backward_count == 0;
-    } 
-    // if we are switching from backward to forward wait and see if we will increase
-
-
-     else  if ( movingFoward() == false && jt_current_forward_or_backward_value == backward ) {
-      jt_backward_count++;
-      jt_forward_count = 0;
-    }
-    getOrientation();
-  }
-  jt_previous_forward_or_backward_value = backward;
-
-}
-
 void loop() {
-
-  //moveMotors();
-  //delay(swingPeriod);
-
   //functionality for how to move Ava when the acceleomter is working
   if(accelStartupCheckResult == false) {
      Serial.println("Accelerometer FAILED"); // JT moved this here since we have debug print statements below anyway that read the values.
+    // @marc feel free to add back pushAvaTime() here.
   }else {
      // delay(10000);//wait 10 seconds 
      // ^ Marc had this morning of 6/29 to try to ignore the first readings of the accelerometer, but I (JT) have it reading them from the start currently (6/29 4pm).
      
-     
-    // JT ADDED THIS 6/29 at 3:45pm
-    // 4:19pm moved it into the loop so that if they stop her manually, we aren't trying to read faulty acceleration values.
+    // JT ADDED THIS 6/29 at 3:45pm 
+    // 4:19pm moved it into the while true loop so that if they stop her manually, we aren't trying to read faulty acceleration values.
     // that didn't work out tho so here it is back before the loop.
+    // this position of this function works :D
      jt_loop_til_detect_motion();
-     // jt_loop_til_fully_moving_forward(); // <- 5:18 last stitch effort!
-    // JT plan:
-    // want it to go forward
-    // come back
-    // then we start applying a regular push
-
      while(true){
-      
+      // todo: (i.e. @marc on sunday 7-1) maybe put the push above the delay?
      //while(getMasterLine()==true){
        delay(jt_accel_sample_rate_microseconds);
-       //gets accel, angles, roll/pitch
-       // getOrientation(); // my jt is swing moving at all function checks this already so i don't want to over-sample
        debug_display_orientation();
-       pushAvaAccel();
+       pushAvaAccel(); // Note from JT: pushAvaAccel on it's own checks the orientation and all conditions to move ava.
      } 
    }
-
-  // //if it is determined accelerometer doesn't work
-  // //push Ava using time based pushing
-  // if(accelStartupCheckResult == false){
-  //   while(getMasterLine()== true){
-  //     pushAvaTime();
-  //   }
-  // }
-  //pushAvaTime();
-  //delay(1000);
 }
 
+// ======================================
+// 6-29 moving functions we know work here so that it's easier to read the new edits.
+// =====================================
 
-//EVERYTHING BELOW MAIN IS NOT BEING USED
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//EVERYTHING BELOW HERE IS NOT BEING USED
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //WHICH IS BASICALLY THE INTERRUPT CODE
 //SAVING IT FOR LATER IF ITS DETERMIEND TO BE USEFUL
 
+//pushes Ava every few seconds
+float swingPeriod = 1300;//desired period for swing motion  // ONLY FOR PUSH AVA TIME
+void pushAvaTime(){
+    // Serial.println("Inside pushAvaTime.");
+    moveMotors();
+    delay(swingPeriod);
+}
+// OLD , HASN"T ACTUALLY BEING CALLED DURING JUNE WORK MONTH
+//determine Motor stregnth based current angle
+const int MAX_ANGLE = -45;
+void determineMotorStrength(){
+  
+  //check to see what angle range motor is in and select motorStrength
+  
+  if(currMaxAngle < rollF){//updates the max angle if rollF is steeper
+    currMaxAngle = rollF;
+  }
+
+  if(currMaxAngle < MAX_ANGLE){//angle is too steep then 
+    motorStrength = WACKY_MOTOR_STRENGTH;//indicate the motor shouldnt shouldn't push by assigning meaningless value
+  }
+
+  else{
+    for(int i = 0; i < numAngles-1; i++){
+      if(rollF >= angles[i] && rollF < angles[i+1]){
+
+        motorStrength = motorStrengths[i];//select motor strength
+
+        //select led to indicate which angle range load is in
+        //turnOffLED();//TURN OFF all LEDS
+        digitalWrite(anglePins[i], HIGH);//turn on respective angle LED
+
+        return;
+      }
+    }
+  }
+}
 
 
 //THIS IS USING TIMER0
@@ -721,11 +751,6 @@ void enableMotorInterrupt(){
   //Disable Compare Match A Interrupt
   TIMSK0 |= (1 << OCIE0A);
 }
-
-
-
-
-
 
 
 //With the settings above, this IRS will trigger each 500ms.
