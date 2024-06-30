@@ -79,8 +79,8 @@ const int motorStrengths[] = {400, 500, 600, 700, 800};
 const int DEFAULT_MOTOR_STRENGTH = 900;
 const int WACKY_MOTOR_STRENGTH = -1;
 /* ------------------------------------------------------- */
-const int minTurnOnAngle = 70; // <====================================== ACTUALLY USED // 70 seems about the highest degree I get upwards when I'm in the seat in the lab.
-const int maxTurnOnAngle = 75; // <======================================= ACTUALLY USED // used to be 90, but that seemed to make the swing push twice in a row.
+const int minTurnOnAngle = 75; // <====================================== ACTUALLY USED // 70 seems about the highest degree I get upwards when I'm in the seat in the lab.
+const int maxTurnOnAngle = 85; // <======================================= ACTUALLY USED // used to be 90, but that seemed to make the swing push twice in a row.
 
 //ACCELEROMETER TEST VARIABLES  
 const int ACCEL_TEST_NUM = 200;
